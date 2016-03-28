@@ -1,0 +1,6 @@
+-> Compiler
+    make
+-> Executer
+    ./bin/wget <url> <fichier où enregistrer>
+-> Nettoyer
+    make cleanall

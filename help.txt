@@ -1,0 +1,8 @@
+httpdownloader: programme mutithread qui permet d'effectuer des téléchargements grâce au protocole HTTP.
+
+Options:
+ -h --help           afficher l'aide sur httpdownloader.
+ -p --prof           choisir la profondeur de téléchargement.
+ -d --debug          afficher des informations de débugage.
+    --nb-th-get      permet de fixer le nombre de threads de téléchargement.
+    --nb-th-analyse  permet de fixer le nombre de threads d'analyse.
