@@ -28,8 +28,6 @@
 #include "HTMLTag.hpp"
 
 
-typedef condition_variable ConditionVariable;
-
 
 /* ////////////////////////////////////|\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\ \\
 // |....oooooooOOOO000000000000000000000000000000000000000000OOOOooooooo....| \\
@@ -51,8 +49,11 @@ class HttpDownloader
         string _path;
 
         mutex _add_url;
+        condition_variable _cv_parse;
+        condition_variable _cv_download;
 
-        vector<string> _downloaded_urls;
+        vector<string> _d_urls;
+        vector<string> _p_urls;
         vector<thread> _threads;
 
 

@@ -27,9 +27,11 @@
 *.exe
 *.out
 *.app
+wget
 
 # VIM
 *.swp
 
 # Temporary
 *~
+

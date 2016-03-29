@@ -1,4 +1,4 @@
-BIN=bin/wget
+BIN=wget
 
 CXXFLAGS=-std=c++11 -g -W -Wall -fdiagnostics-color
 LDFLAGS=

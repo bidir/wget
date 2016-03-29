@@ -25,6 +25,7 @@
 #include <string>
 
 #include "Exceptions.hpp"
+#include "HttpClient.hpp"
 
 using namespace std;
 
@@ -40,6 +41,7 @@ namespace tools
     Exception getException(const string &msg, const char *file, int line);
     Exception getException(const string &msg, const char *file, int line, const char *func);
     void createDir(const string &path);
+    void printHttpClientInfos(HttpClient &httpClient);
 
 }
 

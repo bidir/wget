@@ -135,5 +135,33 @@ namespace tools
             Log::w(ex);
         }  */
     }
-}
 
+    void printHttpClientInfos(HttpClient &client)
+    {
+        ostringstream oss;
+        oss << "----------- Infos recuperees dans l'en-tete ------------ " << endl;
+        if(client.isChunked())
+        {
+            oss << "chunked = true" << endl;
+        }
+        else
+        {
+            oss << "chunked = false" << endl;
+        }
+        oss << "statut = " << client.getStatus() << endl;
+        oss << "message du statut = " << client.getStatusMessage() << endl;
+        oss << "Taille des donnees = " << client.getContentLength() << endl;
+        oss << "Type des donnees = " << client.getContentType() << endl;
+        oss << "Version http = " << client.getHttpVersion() << endl;
+        oss << "Unite donnees = " << client.getAcceptRanges() << endl;
+        oss << "Location = " << client.getLocation() << endl;
+        oss << "Encoding = " << client.getEncoding() << endl;
+        if(client.getUnparsedHeader() != "")
+        {
+            oss << "----------------- Le reste de l'en-tete ---------------- ";
+            oss << endl << client.getUnparsedHeader() << endl;
+        }
+        oss << "-------------------------------------------------------- " << endl;
+        Log::i(oss.str());
+    }
+}

@@ -54,8 +54,9 @@ HttpDownloader::HttpDownloader(string path, int depth):
     _nb_p_th(4),
     _path(path),
     _add_url(),
-    _downloaded_urls(),
-    _threads()
+    _d_urls(4),
+    _p_urls(4),
+    _threads(4)
 {}
 
 
@@ -82,7 +83,7 @@ string HttpDownloader::getPath()
 
 vector<string> &HttpDownloader::getDownloadedURLs()
 {
-    return _downloaded_urls;
+    return _d_urls;
 }
 
 
@@ -122,27 +123,14 @@ void HttpDownloader::download(string url)
         Log::i("Recuperation de la page " + string(url));
         HttpClient client;
         _add_url.lock();
-        _downloaded_urls.push_back(url);
+        _d_urls.push_back(url);
         _add_url.unlock();
         client.url(string(url));
         client.connect();
         client.get();
         client.setSizeToRead(1000);
         client.parseHeader();
-
-        ostringstream oss;
-        oss << "-------------- Infos recuperees dans l'en-tete -------------- " << endl;
-        oss << "chunked = " << client.isChunked() << endl;
-        oss << "statut = " << client.getStatus() << endl;
-        oss << "message du statut = " << client.getStatusMessage() << endl;
-        oss << "Taille des donnees = " << client.getContentLength() << endl;
-        oss << "Type des donnees = " << client.getContentType() << endl;
-        oss << "Version http = " << client.getHttpVersion() << endl;
-        oss << "Unite donnees = " << client.getAcceptRanges() << endl;
-        oss << "Location = " << client.getLocation() << endl;
-        oss << "Encoding = " << client.getEncoding() << endl;
-        oss << "------------------------------------------------------------- " << endl;
-        Log::i(oss.str());
+        tools::printHttpClientInfos(client);
 
         if(
                 client.getStatus() != 200 &&
@@ -275,9 +263,9 @@ void HttpDownloader::download(string url)
 bool HttpDownloader::isDownloaded(const string &url)
 {
     _add_url.lock();
-    for(unsigned int i = 0; i < _downloaded_urls.size(); i++)
+    for(unsigned int i = 0; i < _d_urls.size(); i++)
     {
-        if(_downloaded_urls[i] == url)
+        if(_d_urls[i] == url)
         {
             return true;
         }
