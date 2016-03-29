@@ -52,11 +52,20 @@ HttpDownloader::HttpDownloader(string path, int depth):
     _depth(depth),
     _nb_d_th(4),
     _nb_p_th(4),
+    _d_index(1),
+    _p_index(1),
     _path(path),
-    _add_url(),
+    _client(),
+    _m_put_d_url(),
+    _m_get_d_url(),
+    _m_put_p_file(),
+    _m_get_p_file(),
+    _cv_d_url(),
+    _cv_p_file(),
     _d_urls(4),
-    _p_urls(4),
-    _threads(4)
+    _p_files(4),
+    _d_threads(0),
+    _p_threads(0)
 {}
 
 
@@ -111,20 +120,71 @@ void HttpDownloader::setPath(string path)
 
 
 /* ====================  Methods       ==================== */
-void HttpDownloader::start(HttpDownloader *httpDownloader, const string &url)
+void HttpDownloader::sGet(HttpDownloader *httpDownloader)
 {
-    httpDownloader->download(url);
+    while(1)
+    {
+        httpDownloader->get();
+    }
 }
 
-void HttpDownloader::download(string url)
+void HttpDownloader::sParse(HttpDownloader *httpDownloader)
 {
+    while(1)
+        httpDownloader->parse();
+}
+
+void HttpDownloader::addDURL(const string &url)
+{
+    _m_put_d_url.lock();
+    if(url != "" && !isAdded(url))
+    {
+        _d_urls.push_back(url);
+        _cv_d_url.notify_all();
+    }
+    _m_put_d_url.unlock();
+}
+
+void HttpDownloader::addPFile(const string &url)
+{
+    _m_put_p_file.lock();
+    _p_files.push_back(url);
+    _cv_p_file.notify_one();
+    _m_put_p_file.unlock();
+}
+
+
+string HttpDownloader::getDURL()
+{
+    unique_lock<mutex> lock(_m_get_d_url);
+    while(_d_index == _d_urls.size())
+    {
+        _cv_d_url.wait(lock);
+    }
+    string url = _d_urls[_d_index];
+    _d_index++;
+    return url;
+}
+
+string HttpDownloader::getPFile()
+{
+    unique_lock<mutex> lock(_m_get_p_file);
+    while(_p_index == _p_files.size())
+    {
+        _cv_p_file.wait(lock);
+    }
+    string url = _p_files[_p_index];
+    _p_index++;
+    return url;
+}
+
+void HttpDownloader::get()
+{
+    string url = getDURL();
     try
     {
         Log::i("Recuperation de la page " + string(url));
         HttpClient client;
-        _add_url.lock();
-        _d_urls.push_back(url);
-        _add_url.unlock();
         client.url(string(url));
         client.connect();
         client.get();
@@ -152,7 +212,8 @@ void HttpDownloader::download(string url)
         if(client.getStatus() == 301 || client.getStatus() == 302)
         {
             Log::i("Redirection vers " + client.getLocation());
-            start(this, client.getLocation());
+            //start(this, client.getLocation());
+            addDURL(client.getLocation());
             return;
         }
         else
@@ -191,60 +252,7 @@ void HttpDownloader::download(string url)
 
             if(tools::toUpper(client.getContentType()) == "TEXT/HTML")
             {
-                ifstream in;
-                in.open(filename);
-                if(in.fail())
-                {
-                    Log::w(tools::getException
-                            (
-                                "Erreur pendant l'ouverture du fichier de sortie",
-                                __FILE__,
-                                __LINE__,
-                                __FUNCTION__
-                            ));
-                }
-                HTMLTagParser parser(in);
-                parser.addTagToParse("link");
-                parser.addTagToParse("a");
-                parser.addTagToParse("img");
-                parser.addTagToParse("script");
-                parser.parse();
-                in.close();
-
-                for(unsigned int i = 0; i < parser.getParsedTags().size(); i++)
-                {
-                    HTMLTag tag = parser.getParsedTag(i);
-                    string s_url = "";
-                    string tagname = tools::toUpper(tag.getName());
-                    if(tagname == "IMG" && tag.isAttributeExists("src"))
-                    {
-                        s_url = createURL(client, tag.getAttribute("src"));
-                    }
-                    else if(tagname == "A" && tag.isAttributeExists("href"))
-                    {
-                        s_url = createURL(client, tag.getAttribute("href"));
-                    }
-
-                    else if(tagname == "LINK" && tag.isAttributeExists("href"))
-                    {
-                        s_url = createURL(client, tag.getAttribute("href"));
-                    }
-
-                    else if(tagname == "SCRIPT" && tag.isAttributeExists("src"))
-                    {
-                        s_url = createURL(client, tag.getAttribute("src"));
-                    }
-
-                    if(s_url != "" && !isDownloaded(s_url))
-                    {
-                        thread th(HttpDownloader::start, this, s_url);
-                        if(_wait)
-                        {
-                            th.join();
-                        }
-                        _threads.push_back(std::move(th));
-                    }
-                }
+                addPFile(filename);
             }
         }
     }
@@ -260,9 +268,96 @@ void HttpDownloader::download(string url)
     }
 }
 
-bool HttpDownloader::isDownloaded(const string &url)
+void HttpDownloader::parse()
 {
-    _add_url.lock();
+    string filename = getPFile();
+    try
+    {
+        ifstream in;
+        in.open(filename);
+        if(in.fail())
+        {
+            Log::w(tools::getException
+                    (
+                     "Erreur pendant l'ouverture du fichier de sortie",
+                     __FILE__,
+                     __LINE__,
+                     __FUNCTION__
+                    ));
+        }
+        HTMLTagParser parser(in);
+        parser.addTagToParse("link");
+        parser.addTagToParse("a");
+        parser.addTagToParse("img");
+        parser.addTagToParse("script");
+        parser.parse();
+        in.close();
+
+        for(unsigned int i = 0; i < parser.getParsedTags().size(); i++)
+        {
+            HTMLTag tag = parser.getParsedTag(i);
+            string s_url = "";
+            string tagname = tools::toUpper(tag.getName());
+            if(tagname == "IMG" && tag.isAttributeExists("src"))
+            {
+                s_url = createURL(tag.getAttribute("src"));
+            }
+            else if(tagname == "A" && tag.isAttributeExists("href"))
+            {
+                s_url = createURL(tag.getAttribute("href"));
+            }
+
+            else if(tagname == "LINK" && tag.isAttributeExists("href"))
+            {
+                s_url = createURL(tag.getAttribute("href"));
+            }
+            else if(tagname == "SCRIPT" && tag.isAttributeExists("src"))
+            {
+                s_url = createURL(tag.getAttribute("src"));
+            }
+            addDURL(s_url);
+        }
+    }
+    catch(const Exception &e)
+    {
+        Log::w(e);
+        return;
+    }
+    catch(const exception &ex)
+    {
+        Log::w(ex.what());
+        return;
+    }
+}
+
+void HttpDownloader::download(string url)
+{
+    try
+    {
+        _client.url(url);
+    }
+    catch(const Exception &ex)
+    {
+        cerr << ex.what() << endl;
+        Log::w(ex);
+        return;
+    }
+    for(unsigned int i = 0; i < _nb_p_th; i++)
+    {
+        thread th(HttpDownloader::sParse, this);
+        _p_threads.push_back(move(th));
+    }
+
+    for(unsigned int i = 0; i < _nb_d_th; i++)
+    {
+        thread th(HttpDownloader::sGet, this);
+        _d_threads.push_back(move(th));
+    }
+    addDURL(url);
+}
+
+bool HttpDownloader::isAdded(const string &url)
+{
     for(unsigned int i = 0; i < _d_urls.size(); i++)
     {
         if(_d_urls[i] == url)
@@ -270,11 +365,10 @@ bool HttpDownloader::isDownloaded(const string &url)
             return true;
         }
     }
-    _add_url.unlock();
     return false;
 }
 
-string HttpDownloader::createURL(HttpClient &client, const string &path)
+string HttpDownloader::createURL(const string &path)
 {
     string url("");
     try
@@ -287,17 +381,17 @@ string HttpDownloader::createURL(HttpClient &client, const string &path)
     {
         if(path.find("/") != 0 || path.find("/") == string::npos)
         {
-            url = client.getProtocole() + "://" +
-                client.getAddress() +
-                ":" + client.getPort() +
-                client.getPath() + 
+            url = _client.getProtocole() + "://" +
+                _client.getAddress() +
+                ":" + _client.getPort() +
+                _client.getPath() + 
                 path;
         }
         else
         {
-            url = client.getProtocole() + "://" +
-                client.getAddress() +
-                ":" + client.getPort() +
+            url = _client.getProtocole() + "://" +
+                _client.getAddress() +
+                ":" + _client.getPort() +
                 path;
         }
     }
@@ -305,7 +399,14 @@ string HttpDownloader::createURL(HttpClient &client, const string &path)
     return url;
 }
 
-void HttpDownloader::wait(bool wait)
+void HttpDownloader::wait()
 {
-    _wait = wait;
+    for(unsigned int i = 0; i < _d_threads.size(); i++)
+    {
+        _d_threads[i].join();
+    }
+    for(unsigned int i = 0; i < _p_threads.size(); i++)
+    {
+        _p_threads[i].join();
+    }
 }

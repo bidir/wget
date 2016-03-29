@@ -45,16 +45,24 @@ class HttpDownloader
         unsigned int _depth;
         unsigned int _nb_d_th;
         unsigned int _nb_p_th;
+        unsigned int _d_index;
+        unsigned int _p_index;
 
         string _path;
 
-        mutex _add_url;
-        condition_variable _cv_parse;
-        condition_variable _cv_download;
+        HttpClient _client;
+
+        mutex _m_put_d_url;
+        mutex _m_get_d_url;
+        mutex _m_put_p_file;
+        mutex _m_get_p_file;
+        condition_variable _cv_d_url;
+        condition_variable _cv_p_file;
 
         vector<string> _d_urls;
-        vector<string> _p_urls;
-        vector<thread> _threads;
+        vector<string> _p_files;
+        vector<thread> _d_threads;
+        vector<thread> _p_threads;
 
 
     public:
@@ -80,8 +88,6 @@ class HttpDownloader
         void setNbDownloadThreads(unsigned int nb);
         void setNbParseThreads(unsigned int nb);
         void setPath(string path);
-        void download(string url);
-        void wait(bool wait = true);
 
 
         /* ====================  Operators     ==================== */
@@ -91,15 +97,22 @@ class HttpDownloader
         /* ====================  Methods       ==================== */
         void addTag(const string &tag, const string &attr = "");
         void removeTag(const string &balise);
-        void parseData();
-        bool isDownloaded(const string &url);
-        string createURL(HttpClient &client, const string &path);
+        void download(string url);
+        void wait();
         
 
     protected:
         /* ====================  Methods       ==================== */
-        static void start(HttpDownloader *httpDownloader, const string &url);
-
+        void addDURL(const string &url);
+        void addPFile(const string &url);
+        string getDURL();
+        string getPFile();
+        static void sGet(HttpDownloader *httpDownloader);
+        static void sParse(HttpDownloader *httpDownloader);
+        void get();
+        void parse();
+        bool isAdded(const string &url);
+        string createURL(const string &path);
 };
 /* -----************************  end of class  ************************----- \\
    HttpDownloader

@@ -81,6 +81,7 @@ int main(int argc, char *argv[])
             ///http_get(argv[1], argv[2]);
             HttpDownloader downloader(argv[argc-1]);
             downloader.download(argv[argc-2]);
+            downloader.wait();
             log_file.close();
             return 0; 
         }

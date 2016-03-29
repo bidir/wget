@@ -73,37 +73,9 @@ void HTMLTagParser::parse()
     {
         file = file + line;
     }
-    /*regex e(".*(<head>.*</head>).*(<body>.*</body>).*");
-    smatch m;
-
-    if(regex_search(file, m, e))
-    {
-        string head(m.str(1));
-        //string body(m.str(2));
-        //_body = body;
-        _head = head;
-    }  */
     _content = file;
 
     removeComments();
-
-    ofstream out;
-    out.open("/tmp/toto.html");
-    if(out.fail())
-    {
-        Log::w(ExOpeningFile
-                (
-                     "Erreur pendant l'ouverture du fichier de sortie",
-                     __FILE__,
-                     __LINE__,
-                     __FUNCTION__
-                ));
-    }
-    else
-    {
-        out << _content;
-        out.close();
-    }
 
     searchTags();
 }
