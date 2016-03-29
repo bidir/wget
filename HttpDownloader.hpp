@@ -40,11 +40,12 @@ class HttpDownloader
 {
     private:
         /* ====================  Data members  ==================== */
-        bool _wait;
-
         unsigned int _depth;
         unsigned int _nb_d_th;
         unsigned int _nb_p_th;
+        unsigned int _th_d_end;
+        unsigned int _th_p_end;
+
         unsigned int _d_index;
         unsigned int _p_index;
 
@@ -112,6 +113,11 @@ class HttpDownloader
         void get();
         void parse();
         bool isAdded(const string &url);
+        bool isDEnd();
+        bool isPEnd();
+        bool isEnd();
+        void notifyDURL();
+        void notifyPFile();
         string createURL(const string &path);
 };
 /* -----************************  end of class  ************************----- \\

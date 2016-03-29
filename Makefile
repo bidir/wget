@@ -1,6 +1,6 @@
 BIN=wget
 
-CXXFLAGS=-std=c++11 -g -W -Wall -fdiagnostics-color
+CXXFLAGS=-std=c++11 -O0 -g -W -Wall -fdiagnostics-color
 LDFLAGS=
 
 LIBS=-lboost_system -lpthread -lboost_filesystem

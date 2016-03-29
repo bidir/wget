@@ -33,14 +33,20 @@ using namespace std;
 namespace tools
 {
     void toUpper(string *str);
+    int toInt(const char *sttr);
+    int toInt(const string &sttr);
+    unsigned int toUInt(const char *sttr);
+    unsigned int toUInt(const string &sttr);
     string toUpper(string str);
     string getCurrentTime();
-    string to_string();
     istream &getline(istream &in, string &line);
     string removeSpaces(const string &str);
     Exception getException(const string &msg, const char *file, int line);
     Exception getException(const string &msg, const char *file, int line, const char *func);
+    void createDir(const char *path);
     void createDir(const string &path);
+    bool isDirExists(const string &path);
+    bool isDirExists(const string &path);
     void printHttpClientInfos(HttpClient &httpClient);
 
 }

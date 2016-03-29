@@ -48,12 +48,13 @@ HttpDownloader::HttpDownloader(int depth):
 {}
 
 HttpDownloader::HttpDownloader(string path, int depth):
-    _wait(true),
     _depth(depth),
     _nb_d_th(4),
     _nb_p_th(4),
-    _d_index(1),
-    _p_index(1),
+    _th_d_end(4),
+    _th_p_end(4),
+    _d_index(0),
+    _p_index(0),
     _path(path),
     _client(),
     _m_put_d_url(),
@@ -62,8 +63,8 @@ HttpDownloader::HttpDownloader(string path, int depth):
     _m_get_p_file(),
     _cv_d_url(),
     _cv_p_file(),
-    _d_urls(4),
-    _p_files(4),
+    _d_urls(0),
+    _p_files(0),
     _d_threads(0),
     _p_threads(0)
 {}
@@ -122,16 +123,30 @@ void HttpDownloader::setPath(string path)
 /* ====================  Methods       ==================== */
 void HttpDownloader::sGet(HttpDownloader *httpDownloader)
 {
-    while(1)
+    do
     {
         httpDownloader->get();
-    }
+    }while(httpDownloader->isEnd());
+    httpDownloader->notifyDURL();
 }
 
 void HttpDownloader::sParse(HttpDownloader *httpDownloader)
 {
-    while(1)
+    do
+    {
         httpDownloader->parse();
+    }while(httpDownloader->isEnd());
+    httpDownloader->notifyPFile();
+}
+
+void HttpDownloader::notifyDURL()
+{
+    _cv_d_url.notify_all();
+}
+
+void HttpDownloader::notifyPFile()
+{
+    _cv_p_file.notify_all();
 }
 
 void HttpDownloader::addDURL(const string &url)
@@ -140,7 +155,7 @@ void HttpDownloader::addDURL(const string &url)
     if(url != "" && !isAdded(url))
     {
         _d_urls.push_back(url);
-        _cv_d_url.notify_all();
+        _cv_d_url.notify_one();
     }
     _m_put_d_url.unlock();
 }
@@ -153,13 +168,16 @@ void HttpDownloader::addPFile(const string &url)
     _m_put_p_file.unlock();
 }
 
-
 string HttpDownloader::getDURL()
 {
     unique_lock<mutex> lock(_m_get_d_url);
-    while(_d_index == _d_urls.size())
+    while(_d_index  == _d_urls.size())
     {
         _cv_d_url.wait(lock);
+    }
+    if(isEnd())
+    {
+        return "";
     }
     string url = _d_urls[_d_index];
     _d_index++;
@@ -173,6 +191,10 @@ string HttpDownloader::getPFile()
     {
         _cv_p_file.wait(lock);
     }
+    if(isEnd())
+    {
+        return "";
+    }
     string url = _p_files[_p_index];
     _p_index++;
     return url;
@@ -181,6 +203,11 @@ string HttpDownloader::getPFile()
 void HttpDownloader::get()
 {
     string url = getDURL();
+    if(url == "")
+    {
+        return;
+    }
+    _th_d_end--;
     try
     {
         Log::i("Recuperation de la page " + string(url));
@@ -206,6 +233,7 @@ void HttpDownloader::get()
                      __FUNCTION__
                 );
             Log::w(ex);
+            _th_d_end++;
             return;
         }
 
@@ -214,6 +242,7 @@ void HttpDownloader::get()
             Log::i("Redirection vers " + client.getLocation());
             //start(this, client.getLocation());
             addDURL(client.getLocation());
+            _th_d_end++;
             return;
         }
         else
@@ -240,6 +269,8 @@ void HttpDownloader::get()
                         __FUNCTION__
                     );
                 Log::w(ex);
+                _th_d_end++;
+                return;
             }
             client.writeInOstream(true, file);
             client.recuperateData();
@@ -259,18 +290,27 @@ void HttpDownloader::get()
     catch(const Exception &e)
     {
         Log::w(e);
+        _th_d_end++;
         return;
     }
     catch(const exception &ex)
     {
         Log::w(ex.what());
+        _th_d_end++;
         return;
     }
+    _th_d_end++;
 }
 
 void HttpDownloader::parse()
 {
     string filename = getPFile();
+    if(filename == "")
+    {
+        return;
+    }
+
+    _th_p_end--;
     try
     {
         ifstream in;
@@ -284,6 +324,8 @@ void HttpDownloader::parse()
                      __LINE__,
                      __FUNCTION__
                     ));
+            _th_p_end++;
+            return;
         }
         HTMLTagParser parser(in);
         parser.addTagToParse("link");
@@ -321,13 +363,16 @@ void HttpDownloader::parse()
     catch(const Exception &e)
     {
         Log::w(e);
+        _th_p_end++;
         return;
     }
     catch(const exception &ex)
     {
         Log::w(ex.what());
+        _th_p_end++;
         return;
     }
+    _th_p_end++;
 }
 
 void HttpDownloader::download(string url)
@@ -368,6 +413,21 @@ bool HttpDownloader::isAdded(const string &url)
     return false;
 }
 
+bool HttpDownloader::isDEnd()
+{
+    return _d_index == _d_urls.size() && _th_d_end == _nb_d_th;
+}
+
+bool HttpDownloader::isPEnd()
+{
+    return _p_index == _p_files.size() && _th_p_end == _nb_p_th;
+}
+
+bool HttpDownloader::isEnd()
+{
+    return isDEnd() && isPEnd();
+}
+
 string HttpDownloader::createURL(const string &path)
 {
     string url("");
@@ -405,6 +465,7 @@ void HttpDownloader::wait()
     {
         _d_threads[i].join();
     }
+
     for(unsigned int i = 0; i < _p_threads.size(); i++)
     {
         _p_threads[i].join();

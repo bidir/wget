@@ -53,6 +53,12 @@ int main(int argc, char *argv[])
 
         if(argc >= 3)
         {
+            if(!tools::isDirExists(argv[argc - 1]))
+            {
+                cerr << "ERREUR: Le repertoire \"" <<  argv[argc - 1] << "\" n'existe pas" << endl;
+                return EXIT_FAILURE;
+            }
+            HttpDownloader downloader(argv[argc-1]);
             for(int i = 1; i < argc - 2; i++)
             {
                 //int depth(3);
@@ -66,20 +72,28 @@ int main(int argc, char *argv[])
                 }
                 else if(string(argv[i]) == "-d" || string(argv[i]) == "--debug")
                 {
-                    cout << "ici 2" << endl;
                     Log::add(cout);
                 }
                 else if(string(argv[i]) == "--nb-th-get")
                 {
+                    if(i >= argc - 3)
+                    {
+                        cerr << "ERREUR: L'option \"" << argv[i] << "\" doit etre suivi du nombre de threads." << endl;
+                        return EXIT_FAILURE;
+                    }
                 }
                 else if(string(argv[i]) == "--nb-th-analyse")
                 {
+                }
+                else
+                {
+                    cerr << "ERREUR: L'option \"" << argv[i] << "\" est inconnue." << endl;
+                    return EXIT_FAILURE;
                 }
             }
 
             Log::init();
             ///http_get(argv[1], argv[2]);
-            HttpDownloader downloader(argv[argc-1]);
             downloader.download(argv[argc-2]);
             downloader.wait();
             log_file.close();
@@ -100,7 +114,7 @@ int main(int argc, char *argv[])
         return -1;
     }
 
-    cerr << "Il faut donner l'URL et un nom de fichier" << endl;
+    cerr << "ERREUR: il faut donner l'URL et un nom de dossier." << endl;
     log_file.close();
     return EXIT_FAILURE;
 }
@@ -129,7 +143,7 @@ void http_get(const char *url, const char *nom_fichier)
     }
     catch(const exception &e)
     {
-        cerr << e.what() << endl;
+        cerr << "ERREUR: " << e.what() << endl;
         throw;
     }
 
@@ -172,7 +186,7 @@ void http_get(const char *url, const char *nom_fichier)
         file.open(nom_fichier);
         if(file.fail())
         {
-            cerr << "Erreur pendant l'ouverture du fichier de sortie \"" << nom_fichier << "\"" << endl;
+            cerr << "ERREUR: impossible d'ouvrir le fichier de sortie \"" << nom_fichier << "\"" << endl;
             throw Exception(ERR_OUTPUT_FILE, "Erreur pendant l'ouverture du fichier de sortie \"" + string(nom_fichier) +  "\"", __FILE__, __LINE__, __FUNCTION__);
         }
         client.writeInOstream(true, file);

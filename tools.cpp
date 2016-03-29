@@ -23,6 +23,7 @@
 #include <regex>
 
 #include <boost/filesystem.hpp>
+#include <boost/lexical_cast.hpp>
 
 #include "tools.hpp"
 #include "Log.hpp"
@@ -36,7 +37,50 @@ typedef boost::system::system_error SystemError;
 
 namespace tools
 {
+    using boost::lexical_cast;
+    using boost::bad_lexical_cast;
+    void toUpper(string *str)
+    {
+        transform(str->begin(), str->end(), str->begin(), ::toupper);
+    }
 
+    int toInt(const char *str)
+    {
+        int ret;
+        try
+        {
+            ret = lexical_cast<int>(str);
+        }
+        catch(bad_lexical_cast &e)
+        {
+            throw getException(e.what(), __FILE__, __LINE__);
+        }
+        return ret;
+    }
+
+    int toInt(const string &str)
+    {
+        return toInt(str.c_str());
+    }
+
+    unsigned int toUInt(const char *str)
+    {
+        unsigned int ret;
+        try
+        {
+            ret = lexical_cast<unsigned int>(str);
+        }
+        catch(bad_lexical_cast &e)
+        {
+            throw getException(e.what(), __FILE__, __LINE__);
+        }
+        return ret;
+    }
+
+    unsigned int toUInt(const string &str)
+    {
+        return toUInt(str.c_str());
+    }
 
     string getCurrentTime()
     {
@@ -57,11 +101,6 @@ namespace tools
         string yy(pch);
         yy[yy.size()-1] = '\0';
         return yy + "/" + MM + "/" + dd + " " + hh + ":" + mm + ":" + ss;
-    }
-
-    void toUpper(string *str)
-    {
-        transform(str->begin(), str->end(), str->begin(), ::toupper);
     }
 
     string toUpper(string str)
@@ -102,12 +141,11 @@ namespace tools
         return Exception(0, msg, string(file), line, string(function));
     }
 
-    void createDir(const string &path)
+    void createDir(const char *path)
     {
         Path boost_path(path);
         ErrorCode ec;
 
-        cout << "creation dir = " << path << endl;
         if(!exists(boost_path))
         {
             create_directories(boost_path, ec);
@@ -123,17 +161,21 @@ namespace tools
                     );
             }
         }
-        /*else
-        {
-            ExCreatingDir ex
-                    (
-                        "Le dossier \"" + path + "\" existe deja",
-                        __FILE__,
-                        __LINE__,
-                        __FUNCTION__
-                    );
-            Log::w(ex);
-        }  */
+    }
+
+    void createDir(const string &path)
+    {
+        createDir(path.c_str());
+    }
+
+    bool isDirExists(const char *path)
+    {
+        return exists(Path(path));
+    }
+
+    bool isDirExists(const string &path)
+    {
+        return isDirExists(path.c_str());
     }
 
     void printHttpClientInfos(HttpClient &client)
