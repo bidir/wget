@@ -51,8 +51,6 @@ HttpDownloader::HttpDownloader(string path, int depth):
     _depth(depth),
     _nb_d_th(4),
     _nb_p_th(4),
-    _th_d_end(4),
-    _th_p_end(4),
     _d_index(0),
     _p_index(0),
     _path(path),
@@ -126,8 +124,10 @@ void HttpDownloader::sGet(HttpDownloader *httpDownloader)
     do
     {
         httpDownloader->get();
-    }while(httpDownloader->isEnd());
+    }while(!httpDownloader->isEnd());
     httpDownloader->notifyDURL();
+    httpDownloader->notifyPFile();
+    cout << "j'ai fini 1" << endl;
 }
 
 void HttpDownloader::sParse(HttpDownloader *httpDownloader)
@@ -135,8 +135,10 @@ void HttpDownloader::sParse(HttpDownloader *httpDownloader)
     do
     {
         httpDownloader->parse();
-    }while(httpDownloader->isEnd());
+    }while(!httpDownloader->isEnd());
     httpDownloader->notifyPFile();
+    httpDownloader->notifyDURL();
+    cout << "j'ai fini 2" << endl;
 }
 
 void HttpDownloader::notifyDURL()
@@ -170,34 +172,38 @@ void HttpDownloader::addPFile(const string &url)
 
 string HttpDownloader::getDURL()
 {
+    _th_d_end[this_thread::get_id()] = true;
     unique_lock<mutex> lock(_m_get_d_url);
-    while(_d_index  == _d_urls.size())
+    if(_d_index  == _d_urls.size() && !isEnd())
     {
         _cv_d_url.wait(lock);
     }
-    if(isEnd())
+    string url("");
+    if(!isEnd())
     {
-        return "";
+        _th_d_end[this_thread::get_id()] = false;
+        url = _d_urls[_d_index];
+        _d_index++;
     }
-    string url = _d_urls[_d_index];
-    _d_index++;
     return url;
 }
 
 string HttpDownloader::getPFile()
 {
+    _th_p_end[this_thread::get_id()] = true;
     unique_lock<mutex> lock(_m_get_p_file);
-    while(_p_index == _p_files.size())
+    if(_p_index == _p_files.size() && !isEnd())
     {
         _cv_p_file.wait(lock);
     }
-    if(isEnd())
+    string file("");
+    if(!isEnd())
     {
-        return "";
+        _th_p_end[this_thread::get_id()] = false;
+        file = _p_files[_p_index];
+        _p_index++;
     }
-    string url = _p_files[_p_index];
-    _p_index++;
-    return url;
+    return file;
 }
 
 void HttpDownloader::get()
@@ -207,7 +213,6 @@ void HttpDownloader::get()
     {
         return;
     }
-    _th_d_end--;
     try
     {
         Log::i("Recuperation de la page " + string(url));
@@ -220,9 +225,9 @@ void HttpDownloader::get()
         tools::printHttpClientInfos(client);
 
         if(
-                client.getStatus() != 200 &&
-                client.getStatus() != 301 &&
-                client.getStatus() != 302
+              client.getStatus() != 200 &&
+              client.getStatus() != 301 &&
+              client.getStatus() != 302
           )
         {
             ExHttpClient ex
@@ -233,16 +238,13 @@ void HttpDownloader::get()
                      __FUNCTION__
                 );
             Log::w(ex);
-            _th_d_end++;
             return;
         }
 
         if(client.getStatus() == 301 || client.getStatus() == 302)
         {
             Log::i("Redirection vers " + client.getLocation());
-            //start(this, client.getLocation());
             addDURL(client.getLocation());
-            _th_d_end++;
             return;
         }
         else
@@ -269,7 +271,6 @@ void HttpDownloader::get()
                         __FUNCTION__
                     );
                 Log::w(ex);
-                _th_d_end++;
                 return;
             }
             client.writeInOstream(true, file);
@@ -290,27 +291,24 @@ void HttpDownloader::get()
     catch(const Exception &e)
     {
         Log::w(e);
-        _th_d_end++;
         return;
     }
     catch(const exception &ex)
     {
         Log::w(ex.what());
-        _th_d_end++;
         return;
     }
-    _th_d_end++;
 }
 
 void HttpDownloader::parse()
 {
     string filename = getPFile();
+    cout << "filename = " << filename << endl;
     if(filename == "")
     {
         return;
     }
 
-    _th_p_end--;
     try
     {
         ifstream in;
@@ -324,7 +322,6 @@ void HttpDownloader::parse()
                      __LINE__,
                      __FUNCTION__
                     ));
-            _th_p_end++;
             return;
         }
         HTMLTagParser parser(in);
@@ -363,16 +360,13 @@ void HttpDownloader::parse()
     catch(const Exception &e)
     {
         Log::w(e);
-        _th_p_end++;
         return;
     }
     catch(const exception &ex)
     {
         Log::w(ex.what());
-        _th_p_end++;
         return;
     }
-    _th_p_end++;
 }
 
 void HttpDownloader::download(string url)
@@ -390,12 +384,14 @@ void HttpDownloader::download(string url)
     for(unsigned int i = 0; i < _nb_p_th; i++)
     {
         thread th(HttpDownloader::sParse, this);
+        _th_p_end[th.get_id()] = false;
         _p_threads.push_back(move(th));
     }
 
     for(unsigned int i = 0; i < _nb_d_th; i++)
     {
         thread th(HttpDownloader::sGet, this);
+        _th_d_end[th.get_id()] = false;
         _d_threads.push_back(move(th));
     }
     addDURL(url);
@@ -415,12 +411,36 @@ bool HttpDownloader::isAdded(const string &url)
 
 bool HttpDownloader::isDEnd()
 {
-    return _d_index == _d_urls.size() && _th_d_end == _nb_d_th;
+    if(_d_index != _d_urls.size())
+    {
+        return false;
+    }
+    bool end = true;
+    for(map<thread::id, bool>::iterator it = _th_d_end.begin(); it != _th_d_end.end(); it++)
+    {
+        if(it->first != this_thread::get_id())
+        {
+            end = end && it->second;
+        }
+    }
+    return end;
 }
 
 bool HttpDownloader::isPEnd()
 {
-    return _p_index == _p_files.size() && _th_p_end == _nb_p_th;
+    if(_p_index != _p_files.size())
+    {
+        return false;
+    }
+    bool end = true;
+    for(map<thread::id, bool>::iterator it = _th_p_end.begin(); it != _th_p_end.end(); it++)
+    {
+        if(it->first != this_thread::get_id())
+        {
+            end = end && it->second;
+        }
+    }
+    return end;
 }
 
 bool HttpDownloader::isEnd()

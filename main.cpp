@@ -40,7 +40,6 @@ int main(int argc, char *argv[])
     ofstream log_file;
     log_file.open("/tmp/output.log", ofstream::out|ofstream::app);
     Log::add(log_file);
-
     try
     {
         /*

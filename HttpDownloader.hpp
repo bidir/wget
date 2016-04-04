@@ -43,8 +43,6 @@ class HttpDownloader
         unsigned int _depth;
         unsigned int _nb_d_th;
         unsigned int _nb_p_th;
-        unsigned int _th_d_end;
-        unsigned int _th_p_end;
 
         unsigned int _d_index;
         unsigned int _p_index;
@@ -64,6 +62,9 @@ class HttpDownloader
         vector<string> _p_files;
         vector<thread> _d_threads;
         vector<thread> _p_threads;
+
+        map<thread::id, bool> _th_d_end;
+        map<thread::id, bool> _th_p_end;
 
 
     public:
