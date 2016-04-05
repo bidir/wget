@@ -65,6 +65,14 @@ namespace tools
 
     unsigned int toUInt(const char *str)
     {
+        if(str[0] == '-')
+        {
+            throw getException(
+                                    string(str) + " n'est pas un entier non signe",
+                                    __FILE__,
+                                    __LINE__
+                                );
+        }
         unsigned int ret;
         try
         {

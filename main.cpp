@@ -34,12 +34,19 @@ using namespace std;
 
 void http_get(const char *url, const char *nom_fichier);
 void help();
+void end();
+
+
+ofstream log_file;
+ofstream d_file;
 
 int main(int argc, char *argv[])
 {
-    ofstream log_file;
     log_file.open("/tmp/output.log", ofstream::out|ofstream::app);
+    d_file.open("/tmp/output.debug", ofstream::out |ofstream::app);
+
     Log::add(log_file);
+    Log::setDebugOut(d_file);
     try
     {
         /*
@@ -55,6 +62,7 @@ int main(int argc, char *argv[])
             if(!tools::isDirExists(argv[argc - 1]))
             {
                 cerr << "ERREUR: Le repertoire \"" <<  argv[argc - 1] << "\" n'existe pas" << endl;
+                end();
                 return EXIT_FAILURE;
             }
             HttpDownloader downloader(argv[argc-1]);
@@ -64,6 +72,7 @@ int main(int argc, char *argv[])
                 if(string(argv[i]) == "-h" || string(argv[i]) == "--help")
                 {
                     help();
+                    end();
                     return 0;
                 }
                 else if(string(argv[i]) == "-p" || string(argv[i]) == "--prof")
@@ -78,44 +87,62 @@ int main(int argc, char *argv[])
                     if(i >= argc - 3)
                     {
                         cerr << "ERREUR: L'option \"" << argv[i] << "\" doit etre suivi du nombre de threads." << endl;
+                        end();
                         return EXIT_FAILURE;
                     }
+                    i++;
+                    downloader.setNbDownloadThreads(tools::toUInt(argv[i]));
                 }
                 else if(string(argv[i]) == "--nb-th-analyse")
                 {
+                    if(i >= argc - 3)
+                    {
+                        cerr << "ERREUR: L'option \"" << argv[i] << "\" doit etre suivi du nombre de threads." << endl;
+                        end();
+                        return EXIT_FAILURE;
+                    }
+                    i++;
+                    downloader.setNbParseThreads(tools::toUInt(argv[i]));
                 }
                 else
                 {
                     cerr << "ERREUR: L'option \"" << argv[i] << "\" est inconnue." << endl;
+                    end();
                     return EXIT_FAILURE;
                 }
             }
 
             Log::init();
+            Log::e("hey");
             ///http_get(argv[1], argv[2]);
             downloader.download(argv[argc-2]);
             downloader.wait();
-            log_file.close();
+            end();
             return 0; 
         }
     }
     catch(const Exception &e)
     {
         Log::e(e);
-        log_file.close();
+        end();
         return e.getCode();
     }
     catch(const exception &e)
     {
         Log::e(e.what());
-        log_file.close();
-
+        end();
         return -1;
     }
 
     cerr << "ERREUR: il faut donner l'URL et un nom de dossier." << endl;
-    log_file.close();
+    end();
     return EXIT_FAILURE;
+}
+
+void end()
+{
+    log_file.close();
+    d_file.close();
 }
 
 void help()

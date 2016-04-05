@@ -203,7 +203,7 @@ void HttpClient::get()
     }
     get = get + "Accept: */*\r\n" +
     "Connection: close\r\n\r\n";
-    Log::d("get = " + get);
+    Log::i("get = " + get);
     write(get);
 }
 

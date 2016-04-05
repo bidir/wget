@@ -40,6 +40,8 @@ class HttpDownloader
 {
     private:
         /* ====================  Data members  ==================== */
+        bool _end;
+
         unsigned int _depth;
         unsigned int _nb_d_th;
         unsigned int _nb_p_th;

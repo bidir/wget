@@ -48,6 +48,7 @@ HttpDownloader::HttpDownloader(int depth):
 {}
 
 HttpDownloader::HttpDownloader(string path, int depth):
+    _end(false),
     _depth(depth),
     _nb_d_th(4),
     _nb_p_th(4),
@@ -127,7 +128,6 @@ void HttpDownloader::sGet(HttpDownloader *httpDownloader)
     }while(!httpDownloader->isEnd());
     httpDownloader->notifyDURL();
     httpDownloader->notifyPFile();
-    cout << "j'ai fini 1" << endl;
 }
 
 void HttpDownloader::sParse(HttpDownloader *httpDownloader)
@@ -138,16 +138,17 @@ void HttpDownloader::sParse(HttpDownloader *httpDownloader)
     }while(!httpDownloader->isEnd());
     httpDownloader->notifyPFile();
     httpDownloader->notifyDURL();
-    cout << "j'ai fini 2" << endl;
 }
 
 void HttpDownloader::notifyDURL()
 {
+    _end = true;
     _cv_d_url.notify_all();
 }
 
 void HttpDownloader::notifyPFile()
 {
+    _end = true;
     _cv_p_file.notify_all();
 }
 
@@ -172,39 +173,35 @@ void HttpDownloader::addPFile(const string &url)
 
 string HttpDownloader::getDURL()
 {
-    _th_d_end[this_thread::get_id()] = true;
     unique_lock<mutex> lock(_m_get_d_url);
-    if(_d_index  == _d_urls.size() && !isEnd())
+    while(_d_index  == _d_urls.size() && !_end)
     {
         _cv_d_url.wait(lock);
     }
     string url("");
-    if(!isEnd())
+    if(!_end)
     {
-        _th_d_end[this_thread::get_id()] = false;
         url = _d_urls[_d_index];
+        _th_d_end[this_thread::get_id()] = false;
         _d_index++;
     }
-    cout << "ici durl" << endl;
     return url;
 }
 
 string HttpDownloader::getPFile()
 {
-    _th_p_end[this_thread::get_id()] = true;
     unique_lock<mutex> lock(_m_get_p_file);
-    if(_p_index == _p_files.size() && !isEnd())
+    while(_p_index == _p_files.size() && !_end)
     {
         _cv_p_file.wait(lock);
     }
     string file("");
-    if(!isEnd())
+    if(!_end)
     {
         _th_p_end[this_thread::get_id()] = false;
         file = _p_files[_p_index];
         _p_index++;
     }
-    cout << "ici pfile" << endl;
     return file;
 }
 
@@ -213,6 +210,7 @@ void HttpDownloader::get()
     string url = getDURL();
     if(url == "")
     {
+        _th_d_end[this_thread::get_id()] = true;
         return;
     }
     try
@@ -240,6 +238,7 @@ void HttpDownloader::get()
                      __FUNCTION__
                 );
             Log::w(ex);
+            _th_d_end[this_thread::get_id()] = true;
             return;
         }
 
@@ -247,6 +246,7 @@ void HttpDownloader::get()
         {
             Log::i("Redirection vers " + client.getLocation());
             addDURL(client.getLocation());
+            _th_d_end[this_thread::get_id()] = true;
             return;
         }
         else
@@ -273,6 +273,7 @@ void HttpDownloader::get()
                         __FUNCTION__
                     );
                 Log::w(ex);
+                _th_d_end[this_thread::get_id()] = true;
                 return;
             }
             client.writeInOstream(true, file);
@@ -293,21 +294,24 @@ void HttpDownloader::get()
     catch(const Exception &e)
     {
         Log::w(e);
+        _th_d_end[this_thread::get_id()] = true;
         return;
     }
     catch(const exception &ex)
     {
         Log::w(ex.what());
+        _th_d_end[this_thread::get_id()] = true;
         return;
     }
+    _th_d_end[this_thread::get_id()] = true;
 }
 
 void HttpDownloader::parse()
 {
     string filename = getPFile();
-    cout << "filename = " << filename << endl;
     if(filename == "")
     {
+        _th_p_end[this_thread::get_id()] = true;
         return;
     }
 
@@ -324,6 +328,7 @@ void HttpDownloader::parse()
                      __LINE__,
                      __FUNCTION__
                     ));
+            _th_p_end[this_thread::get_id()] = true;
             return;
         }
         HTMLTagParser parser(in);
@@ -362,13 +367,16 @@ void HttpDownloader::parse()
     catch(const Exception &e)
     {
         Log::w(e);
+        _th_p_end[this_thread::get_id()] = true;
         return;
     }
     catch(const exception &ex)
     {
         Log::w(ex.what());
+        _th_p_end[this_thread::get_id()] = true;
         return;
     }
+    _th_p_end[this_thread::get_id()] = true;
 }
 
 void HttpDownloader::download(string url)
@@ -379,21 +387,21 @@ void HttpDownloader::download(string url)
     }
     catch(const Exception &ex)
     {
-        cerr << ex.what() << endl;
+        //cerr << ex.what() << endl;
         Log::w(ex);
         return;
     }
     for(unsigned int i = 0; i < _nb_p_th; i++)
     {
         thread th(HttpDownloader::sParse, this);
-        _th_p_end[th.get_id()] = false;
+        _th_p_end[th.get_id()] = true;
         _p_threads.push_back(move(th));
     }
 
     for(unsigned int i = 0; i < _nb_d_th; i++)
     {
         thread th(HttpDownloader::sGet, this);
-        _th_d_end[th.get_id()] = false;
+        _th_d_end[th.get_id()] = true;
         _d_threads.push_back(move(th));
     }
     addDURL(url);
@@ -417,15 +425,14 @@ bool HttpDownloader::isDEnd()
     {
         return false;
     }
-    bool end = true;
     for(map<thread::id, bool>::iterator it = _th_d_end.begin(); it != _th_d_end.end(); it++)
     {
-        if(it->first != this_thread::get_id())
+        if(!it->second)
         {
-            end = end && it->second;
+            return false;
         }
     }
-    return end;
+    return true;
 }
 
 bool HttpDownloader::isPEnd()
@@ -434,15 +441,14 @@ bool HttpDownloader::isPEnd()
     {
         return false;
     }
-    bool end = true;
     for(map<thread::id, bool>::iterator it = _th_p_end.begin(); it != _th_p_end.end(); it++)
     {
-        if(it->first != this_thread::get_id())
+        if(!it->second)
         {
-            end = end && it->second;
+            return false;
         }
     }
-    return end;
+    return true;
 }
 
 bool HttpDownloader::isEnd()
@@ -486,12 +492,17 @@ void HttpDownloader::wait()
     for(unsigned int i = 0; i < _d_threads.size(); i++)
     {
         if(_d_threads[i].joinable())
+        {
             _d_threads[i].join();
+
+        }
     }
 
     for(unsigned int i = 0; i < _p_threads.size(); i++)
     {
         if(_p_threads[i].joinable())
+        {
             _p_threads[i].join();
+        }
     }
 }

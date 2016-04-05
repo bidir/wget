@@ -21,6 +21,7 @@
 
 #include <iostream>
 #include <vector>
+#include <map>
 #include <string>
 #include <thread>
 #include <mutex>
@@ -42,19 +43,25 @@ class Log
     private:
         /* ====================  Data members  ==================== */
         static bool _log;
-        static vector<ostream *> _out;
+
         static string _e;
         static string _w;
         static string _i;
         static string _d;
+
         static mutex _m_write;
+
+        static ostream *_d_out;
+        static vector<ostream *> _out;
 
         /* ====================  Methods       ==================== */
     public:
         static void init();
         static void add(ostream &out);
+        static void setDebugOut(ostream &out);
         static void stop();
         static void write(const string &msg);
+        static void writeD(const string &msg);
         static void print(const string &label, const Exception &ex);
         static void print(const string &label, const string &msg);
         static void e(const string &msg);

@@ -39,6 +39,7 @@ string Log::_d = "D";
 mutex Log::_m_write;
 bool Log::_log = false;
 vector<ostream *> Log::_out(0);
+ostream *Log::_d_out = NULL;
 
 
 /* ====================  Methods       ==================== */
@@ -46,6 +47,14 @@ void Log::init()
 {
     _m_write.lock();
     _log = true;
+    if(_d_out != NULL)
+    {
+        *_d_out << "================================================" << endl
+            << "000000000000000000000000000000000000000000000000" << endl
+            << "------------- " << tools::getCurrentTime() << " --------------" << endl
+            << "000000000000000000000000000000000000000000000000" << endl
+            << "================================================" << endl;
+    }
     for(unsigned int i = 0; i < _out.size(); i++)
     {
         *_out[i] << "================================================" << endl
@@ -60,6 +69,11 @@ void Log::init()
 void Log::add(ostream &out)
 {
     _out.push_back(&out);
+}
+
+void Log::setDebugOut(ostream &out)
+{
+    _d_out = &out;
 }
 
 void Log::stop()
@@ -77,6 +91,13 @@ void Log::write(const string &msg)
     _m_write.unlock();
 }
 
+void Log::writeD(const string &msg)
+{
+    _m_write.lock();
+    *_d_out << endl << msg << endl;
+    _m_write.unlock();
+}
+
 void Log::print(const string &label, const Exception &ex)
 {
     if(_log)
@@ -88,7 +109,14 @@ void Log::print(const string &label, const Exception &ex)
             << "["  << ex.getFunction() << "]"
             << "[" << tools::getCurrentTime() << "]" << endl
             << ex.getMessage();
-        write(oss.str());
+        if(label == _d && _d_out != NULL)
+        {
+            writeD(oss.str());
+        }
+        else
+        {
+            write(oss.str());
+        }
         //thread th(Log::write, oss.str());
     }
 }
@@ -101,7 +129,14 @@ void Log::print(const string &label, const string &msg)
         oss << "[" << label << "]"
             << "[" << tools::getCurrentTime() << "]" << endl
             << msg;
-        write(oss.str());
+        if(label == _d && _d_out != NULL)
+        {
+            writeD(oss.str());
+        }
+        else
+        {
+            write(oss.str());
+        }
         //thread th(Log::write, oss.str());
     }
 }
