@@ -62,11 +62,16 @@ class HttpDownloader
 
         vector<string> _d_urls;
         vector<string> _p_files;
+        vector<unsigned int> _d_depths;
+        vector<unsigned int> _p_depths;
         vector<thread> _d_threads;
         vector<thread> _p_threads;
 
         map<thread::id, bool> _th_d_end;
         map<thread::id, bool> _th_p_end;
+
+        map<thread::id, unsigned int> _th_d_depth;
+        map<thread::id, unsigned int> _th_p_depth;
 
 
     public:
@@ -107,8 +112,8 @@ class HttpDownloader
 
     protected:
         /* ====================  Methods       ==================== */
-        void addDURL(const string &url);
-        void addPFile(const string &url);
+        void addDURL(const string &url, unsigned int depth = 0);
+        void addPFile(const string &url, unsigned int depth = 0);
         string getDURL();
         string getPFile();
         static void sGet(HttpDownloader *httpDownloader);

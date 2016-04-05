@@ -77,6 +77,14 @@ int main(int argc, char *argv[])
                 }
                 else if(string(argv[i]) == "-p" || string(argv[i]) == "--prof")
                 {
+                    if(i >= argc - 3)
+                    {
+                        cerr << "ERREUR: L'option \"" << argv[i] << "\" doit etre suivi d'un nombre." << endl;
+                        end();
+                        return EXIT_FAILURE;
+                    }
+                    i++;
+                    downloader.setDepth(tools::toUInt(argv[i]));
                 }
                 else if(string(argv[i]) == "-d" || string(argv[i]) == "--debug")
                 {
