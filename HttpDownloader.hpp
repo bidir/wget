@@ -26,6 +26,7 @@
 #include <condition_variable>
 #include "HttpClient.hpp"
 #include "HTMLTag.hpp"
+#include "HttpDownloaderQueue.hpp"
 
 
 
@@ -52,6 +53,8 @@ class HttpDownloader
         string _path;
 
         HttpClient _client;
+
+        HttpDownloaderQueue _queue;
 
         mutex _m_put_d_url;
         mutex _m_get_d_url;
@@ -83,6 +86,7 @@ class HttpDownloader
 
 
         /* ====================  Accessors     ==================== */
+        bool getEnd(){return _queue.isStopped();}
         unsigned int getDepth();
         unsigned int getNbDownloadThreads();
         unsigned int getNbParseThreads();
