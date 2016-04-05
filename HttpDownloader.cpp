@@ -128,8 +128,7 @@ void HttpDownloader::sGet(HttpDownloader *httpDownloader)
     {
         httpDownloader->get();
     }while(!httpDownloader->isEnd());
-    httpDownloader->notifyDURL();
-    httpDownloader->notifyPFile();
+    httpDownloader->notifyEnd();
 }
 
 void HttpDownloader::sParse(HttpDownloader *httpDownloader)
@@ -138,23 +137,27 @@ void HttpDownloader::sParse(HttpDownloader *httpDownloader)
     {
         httpDownloader->parse();
     }while(!httpDownloader->isEnd());
-    httpDownloader->notifyPFile();
-    httpDownloader->notifyDURL();
+    httpDownloader->notifyEnd();
 }
 
 void HttpDownloader::notifyDURL()
 {
-    _end = true;
-    _cv_d_url.notify_all();
+    _cv_d_url.notify_one();
 }
 
 void HttpDownloader::notifyPFile()
 {
+    _cv_p_file.notify_one();
+}
+
+void HttpDownloader::notifyEnd()
+{
     _end = true;
+    _cv_d_url.notify_all();
     _cv_p_file.notify_all();
 }
 
-void HttpDownloader::addDURL(const string &url, unsigned int depth)
+void HttpDownloader::addURL(const string &url, unsigned int depth)
 {
     _m_put_d_url.lock();
     if(url != "" && !isAdded(url))
@@ -166,10 +169,11 @@ void HttpDownloader::addDURL(const string &url, unsigned int depth)
     _m_put_d_url.unlock();
 }
 
-void HttpDownloader::addPFile(const string &url, unsigned int depth)
+void HttpDownloader::addFile(const string &url, unsigned int depth)
 {
     _m_put_p_file.lock();
     _p_files.push_back(url);
+    _p_depths.push_back(depth);
     _cv_p_file.notify_one();
     _m_put_p_file.unlock();
 }
@@ -186,6 +190,7 @@ string HttpDownloader::getDURL()
     {
         url = _d_urls[_d_index];
         _th_d_end[this_thread::get_id()] = false;
+        _th_depth[this_thread::get_id()] = _d_depths[_d_index];
         _d_index++;
     }
     return url;
@@ -202,7 +207,7 @@ string HttpDownloader::getPFile()
     if(!_end)
     {
         _th_p_end[this_thread::get_id()] = false;
-        _th_p_depth[this_thread::get_id()] = _d_depths[_d_index];
+        _th_depth[this_thread::get_id()] = _p_depths[_p_index];
         file = _p_files[_p_index];
         _p_index++;
     }
@@ -217,6 +222,9 @@ void HttpDownloader::get()
         _th_d_end[this_thread::get_id()] = true;
         return;
     }
+
+    unsigned int depth = _th_depth[this_thread::get_id()];
+    cout << "depth = " << _depth << " -> " << depth << endl;
     try
     {
         Log::i("Recuperation de la page " + string(url));
@@ -249,7 +257,7 @@ void HttpDownloader::get()
         if(client.getStatus() == 301 || client.getStatus() == 302)
         {
             Log::i("Redirection vers " + client.getLocation());
-            addDURL(client.getLocation());
+            addURL(client.getLocation(), depth);
             _th_d_end[this_thread::get_id()] = true;
             return;
         }
@@ -291,7 +299,7 @@ void HttpDownloader::get()
 
             if(tools::toUpper(client.getContentType()) == "TEXT/HTML")
             {
-                addPFile(filename);
+                addFile(filename, depth + 1);
             }
         }
     }
@@ -313,12 +321,13 @@ void HttpDownloader::get()
 void HttpDownloader::parse()
 {
     string filename = getPFile();
-    cout << "depth = " << _depth << " -> " << _th_p_depth[this_thread::get_id()] << endl;
-    if(filename == "" || _th_p_depth[this_thread::get_id()] >= _depth)
+    if(filename == "" || _th_depth[this_thread::get_id()] >= _depth)
     {
         _th_p_end[this_thread::get_id()] = true;
         return;
     }
+    unsigned int depth = _th_depth[this_thread::get_id()];
+    cout << "depth = " << _depth << " -> " << depth << endl;
 
     try
     {
@@ -353,7 +362,7 @@ void HttpDownloader::parse()
             {
                 s_url = createURL(tag.getAttribute("src"));
             }
-            else if(tagname == "A" && tag.isAttributeExists("href"))
+            else if(tagname == "A" && tag.isAttributeExists("href") && depth + 1 < _depth)
             {
                 s_url = createURL(tag.getAttribute("href"));
             }
@@ -368,7 +377,7 @@ void HttpDownloader::parse()
             }
             if(HttpClient::parseURL(s_url)[1] == _client.getAddress())
             {
-                addDURL(s_url);
+                addURL(s_url, depth);
             }
         }
     }
@@ -412,7 +421,7 @@ void HttpDownloader::download(string url)
         _th_d_end[th.get_id()] = true;
         _d_threads.push_back(move(th));
     }
-    addDURL(url);
+    addURL(url);
 }
 
 bool HttpDownloader::isAdded(const string &url)

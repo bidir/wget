@@ -70,8 +70,7 @@ class HttpDownloader
         map<thread::id, bool> _th_d_end;
         map<thread::id, bool> _th_p_end;
 
-        map<thread::id, unsigned int> _th_d_depth;
-        map<thread::id, unsigned int> _th_p_depth;
+        map<thread::id, unsigned int> _th_depth;
 
 
     public:
@@ -108,12 +107,12 @@ class HttpDownloader
         void removeTag(const string &balise);
         void download(string url);
         void wait();
+        void addURL(const string &url, unsigned int depth = 0);
+        void addFile(const string &url, unsigned int depth = 0);
         
 
     protected:
         /* ====================  Methods       ==================== */
-        void addDURL(const string &url, unsigned int depth = 0);
-        void addPFile(const string &url, unsigned int depth = 0);
         string getDURL();
         string getPFile();
         static void sGet(HttpDownloader *httpDownloader);
@@ -126,6 +125,7 @@ class HttpDownloader
         bool isEnd();
         void notifyDURL();
         void notifyPFile();
+        void notifyEnd();
         string createURL(const string &path);
 };
 /* -----************************  end of class  ************************----- \\

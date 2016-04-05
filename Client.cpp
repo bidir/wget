@@ -263,7 +263,7 @@ void Client::readSome()
 
     if(error)
     {
-        cerr << "Probleme de lecture sur la socket: " << error.message() << endl;
+        //cerr << "Probleme de lecture sur la socket: " << error.message() << endl;
         SystemError es(error);
         throw ExReadSocket(es.what(), __FILE__, __LINE__, __FUNCTION__);
     }
