@@ -185,6 +185,7 @@ string HttpDownloader::getDURL()
         url = _d_urls[_d_index];
         _d_index++;
     }
+    cout << "ici durl" << endl;
     return url;
 }
 
@@ -203,6 +204,7 @@ string HttpDownloader::getPFile()
         file = _p_files[_p_index];
         _p_index++;
     }
+    cout << "ici pfile" << endl;
     return file;
 }
 
@@ -483,11 +485,13 @@ void HttpDownloader::wait()
 {
     for(unsigned int i = 0; i < _d_threads.size(); i++)
     {
-        _d_threads[i].join();
+        if(_d_threads[i].joinable())
+            _d_threads[i].join();
     }
 
     for(unsigned int i = 0; i < _p_threads.size(); i++)
     {
-        _p_threads[i].join();
+        if(_p_threads[i].joinable())
+            _p_threads[i].join();
     }
 }
