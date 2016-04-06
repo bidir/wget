@@ -41,14 +41,9 @@ class HttpDownloader
 {
     private:
         /* ====================  Data members  ==================== */
-        bool _end;
-
         unsigned int _depth;
         unsigned int _nb_d_th;
         unsigned int _nb_p_th;
-
-        unsigned int _d_index;
-        unsigned int _p_index;
 
         string _path;
 
@@ -56,24 +51,8 @@ class HttpDownloader
 
         HttpDownloaderQueue _queue;
 
-        mutex _m_put_d_url;
-        mutex _m_get_d_url;
-        mutex _m_put_p_file;
-        mutex _m_get_p_file;
-        condition_variable _cv_d_url;
-        condition_variable _cv_p_file;
-
-        vector<string> _d_urls;
-        vector<string> _p_files;
-        vector<unsigned int> _d_depths;
-        vector<unsigned int> _p_depths;
         vector<thread> _d_threads;
         vector<thread> _p_threads;
-
-        map<thread::id, bool> _th_d_end;
-        map<thread::id, bool> _th_p_end;
-
-        map<thread::id, unsigned int> _th_depth;
 
 
     public:
@@ -86,13 +65,11 @@ class HttpDownloader
 
 
         /* ====================  Accessors     ==================== */
-        bool getEnd(){return _queue.isStopped();}
         unsigned int getDepth();
         unsigned int getNbDownloadThreads();
         unsigned int getNbParseThreads();
         string getPath();
-        vector<HTMLTag> &getTags();
-        vector<string> &getDownloadedURLs();
+        HttpDownloaderQueue &getQueue();
 
 
         /* ====================  Mutators      ==================== */
@@ -111,25 +88,14 @@ class HttpDownloader
         void removeTag(const string &balise);
         void download(string url);
         void wait();
-        void addURL(const string &url, unsigned int depth = 0);
-        void addFile(const string &url, unsigned int depth = 0);
         
 
     protected:
         /* ====================  Methods       ==================== */
-        string getDURL();
-        string getPFile();
         static void sGet(HttpDownloader *httpDownloader);
         static void sParse(HttpDownloader *httpDownloader);
         void get();
         void parse();
-        bool isAdded(const string &url);
-        bool isDEnd();
-        bool isPEnd();
-        bool isEnd();
-        void notifyDURL();
-        void notifyPFile();
-        void notifyEnd();
         string createURL(const string &path);
 };
 /* -----************************  end of class  ************************----- \\

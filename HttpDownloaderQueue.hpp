@@ -87,8 +87,8 @@ class HttpDownloaderQueue
         /* ====================  Methods       ==================== */
         bool hasURL(const string &url);
         bool hasFile(const string &url);
-        void addURL(const string &url, unsigned int depth = 0);
-        void addFile(const string &url, unsigned int depth = 0);
+        void addURL(const string &url, unsigned int depth = 1);
+        void addFile(const string &url, unsigned int depth = 1);
         string getURL();
         string getFile();
         void stop();
@@ -97,6 +97,10 @@ class HttpDownloaderQueue
         bool isPEnd();
         bool isEnd();
         bool isStopped();
+
+        void notifyURL();
+        void notifyFile();
+        void notifyEnd();
 
 
     protected:

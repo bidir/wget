@@ -17,6 +17,7 @@
  */
 
 
+#include <iostream>
 #include "HttpDownloaderQueue.hpp"
 
 
@@ -74,6 +75,7 @@ void HttpDownloaderQueue::addFile(const string &url, unsigned int depth)
 
 string HttpDownloaderQueue::getURL()
 {
+    _th_d_end[this_thread::get_id()] = true;
     unique_lock<mutex> lock(_m_get_url);
     while(_urls.empty() && !_stop)
     {
@@ -82,13 +84,13 @@ string HttpDownloaderQueue::getURL()
     string url("");
     if(!_stop)
     {
+        _th_d_end[this_thread::get_id()] = false;
         url = _urls.back();
         _urls.pop_back();
         if(_listener)
         {
             _listener->onGetURL(_d_depths.back());
         }
-        _th_d_end[this_thread::get_id()] = false;
         _th_depth[this_thread::get_id()] = _d_depths.back();
         _d_depths.pop_back();
     }
@@ -97,6 +99,7 @@ string HttpDownloaderQueue::getURL()
 
 string HttpDownloaderQueue::getFile()
 {
+    _th_p_end[this_thread::get_id()] = true;
     unique_lock<mutex> lock(_m_get_file);
     while(_files.empty() && !_stop)
     {
@@ -105,13 +108,13 @@ string HttpDownloaderQueue::getFile()
     string file("");
     if(!_stop)
     {
+        _th_p_end[this_thread::get_id()] = false;
         file = _files.back();
         _files.pop_back();
         if(_listener)
         {
             _listener->onGetFile(_p_depths.back());
         }
-        _th_p_end[this_thread::get_id()] = false;
         _th_depth[this_thread::get_id()] = _p_depths.back();
         _p_depths.pop_back();
     }
@@ -161,7 +164,7 @@ bool HttpDownloaderQueue::isDEnd()
     }
     for(map<thread::id, bool>::iterator it = _th_d_end.begin(); it != _th_d_end.end(); it++)
     {
-        if(!it->second)
+        if(!it->second && it->first != this_thread::get_id())
         {
             return false;
         }
@@ -193,4 +196,22 @@ bool HttpDownloaderQueue::isEnd()
 bool HttpDownloaderQueue::isStopped()
 {
     return _stop;
+}
+
+void HttpDownloaderQueue::notifyURL()
+{
+    _cv_url.notify_one();
+}
+
+void HttpDownloaderQueue::notifyFile()
+{
+    _cv_file.notify_one();
+}
+
+void HttpDownloaderQueue::notifyEnd()
+{
+    stop();
+    _th_d_end[this_thread::get_id()] = true;
+    _cv_url.notify_one();
+    _cv_file.notify_one();
 }

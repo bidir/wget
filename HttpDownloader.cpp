@@ -47,24 +47,11 @@ HttpDownloader::HttpDownloader(int depth):
 {}
 
 HttpDownloader::HttpDownloader(string path, int depth):
-    _end(false),
     _depth(depth),
     _nb_d_th(4),
     _nb_p_th(4),
-    _d_index(0),
-    _p_index(0),
     _path(path),
     _client(),
-    _m_put_d_url(),
-    _m_get_d_url(),
-    _m_put_p_file(),
-    _m_get_p_file(),
-    _cv_d_url(),
-    _cv_p_file(),
-    _d_urls(0),
-    _p_files(0),
-    _d_depths(0),
-    _p_depths(0),
     _d_threads(0),
     _p_threads(0)
 {}
@@ -91,11 +78,10 @@ string HttpDownloader::getPath()
     return _path;
 }
 
-vector<string> &HttpDownloader::getDownloadedURLs()
+HttpDownloaderQueue &HttpDownloader::getQueue()
 {
-    return _d_urls;
+    return _queue;
 }
-
 
 
 /* ====================  Mutators      ==================== */
@@ -126,9 +112,8 @@ void HttpDownloader::sGet(HttpDownloader *httpDownloader)
     do
     {
         httpDownloader->get();
-        cout << "end1 = " << httpDownloader->getEnd() << endl;
-    }while(!httpDownloader->isEnd() && ! httpDownloader->getEnd());
-    httpDownloader->notifyEnd();
+    }while(!httpDownloader->getQueue().isEnd() && ! httpDownloader->getQueue().isStopped());
+    httpDownloader->getQueue().notifyEnd();
 }
 
 void HttpDownloader::sParse(HttpDownloader *httpDownloader)
@@ -136,87 +121,8 @@ void HttpDownloader::sParse(HttpDownloader *httpDownloader)
     do
     {
         httpDownloader->parse();
-    }while(!httpDownloader->isEnd() && ! httpDownloader->getEnd());
-    httpDownloader->notifyEnd();
-}
-
-void HttpDownloader::notifyDURL()
-{
-    _cv_d_url.notify_one();
-}
-
-void HttpDownloader::notifyPFile()
-{
-    _cv_p_file.notify_one();
-}
-
-void HttpDownloader::notifyEnd()
-{
-    _th_d_end[this_thread::get_id()] = true;
-    //_end = true;
-    _queue.stop();
-    _cv_d_url.notify_one();
-    _cv_p_file.notify_one();
-}
-
-void HttpDownloader::addURL(const string &url, unsigned int depth)
-{
-    _m_put_d_url.lock();
-    if(url != "" && !isAdded(url))
-    {
-        _d_urls.push_back(url);
-        _d_depths.push_back(depth);
-        _cv_d_url.notify_one();
-    }
-    _m_put_d_url.unlock();
-}
-
-void HttpDownloader::addFile(const string &url, unsigned int depth)
-{
-    _m_put_p_file.lock();
-    _p_files.push_back(url);
-    _p_depths.push_back(depth);
-    _cv_p_file.notify_one();
-    _m_put_p_file.unlock();
-}
-
-string HttpDownloader::getDURL()
-{
-    _th_d_end[this_thread::get_id()] = true;
-    unique_lock<mutex> lock(_m_get_d_url);
-    while(_d_index  == _d_urls.size() && !_queue.isStopped())
-    {
-        _cv_d_url.wait(lock);
-    }
-    string url("");
-    //if(!_end)
-    if(!_queue.isStopped())
-    {
-        url = _d_urls[_d_index];
-        _th_d_end[this_thread::get_id()] = false;
-        _th_depth[this_thread::get_id()] = _d_depths[_d_index];
-        _d_index++;
-    }
-    return url;
-}
-
-string HttpDownloader::getPFile()
-{
-    _th_p_end[this_thread::get_id()] = true;
-    unique_lock<mutex> lock(_m_get_p_file);
-    while(_p_index == _p_files.size() && !_queue.isStopped())
-    {
-        _cv_p_file.wait(lock);
-    }
-    string file("");
-    if(!_queue.isStopped())
-    {
-        _th_p_end[this_thread::get_id()] = false;
-        _th_depth[this_thread::get_id()] = _p_depths[_p_index];
-        file = _p_files[_p_index];
-        _p_index++;
-    }
-    return file;
+    }while(!httpDownloader->getQueue().isEnd() && ! httpDownloader->getQueue().isStopped());
+    httpDownloader->getQueue().notifyEnd();
 }
 
 void HttpDownloader::get()
@@ -261,7 +167,6 @@ void HttpDownloader::get()
         if(client.getStatus() == 301 || client.getStatus() == 302)
         {
             Log::i("Redirection vers " + client.getLocation());
-            //addURL(client.getLocation(), depth);
             _queue.addURL(client.getLocation(), depth);
             return;
         }
@@ -300,7 +205,7 @@ void HttpDownloader::get()
             Log::i("Fermeture de la connexion au serveur " + string(url));
             client.close(); 
 
-            if(tools::toUpper(client.getContentType()) == "TEXT/HTML")
+            if(tools::toUpper(client.getContentType()) == "TEXT/HTML" && depth + 1 < _depth)
             {
                 _queue.addFile(filename, depth + 1);
             }
@@ -322,11 +227,11 @@ void HttpDownloader::parse()
 {
     //string filename = getPFile();
     string filename = _queue.getFile();
-    if(filename == "" || _th_depth[this_thread::get_id()] >= _depth)
+    unsigned int depth = _queue.getDepth();
+    if(filename == "")
     {
         return;
     }
-    unsigned int depth = _queue.getDepth();
     cout << "depth = " << _depth << " -> " << depth << endl;
 
     try
@@ -337,10 +242,10 @@ void HttpDownloader::parse()
         {
             Log::w(tools::getException
                     (
-                     "Erreur pendant l'ouverture du fichier de sortie",
-                     __FILE__,
-                     __LINE__,
-                     __FUNCTION__
+                        "Erreur pendant l'ouverture du fichier de sortie",
+                        __FILE__,
+                        __LINE__,
+                        __FUNCTION__
                     ));
             return;
         }
@@ -361,7 +266,7 @@ void HttpDownloader::parse()
             {
                 s_url = createURL(tag.getAttribute("src"));
             }
-            else if(tagname == "A" && tag.isAttributeExists("href") && depth + 1 < _depth)
+            else if(tagname == "A" && tag.isAttributeExists("href") && depth <= _depth)
             {
                 s_url = createURL(tag.getAttribute("href"));
             }
@@ -374,10 +279,10 @@ void HttpDownloader::parse()
             {
                 s_url = createURL(tag.getAttribute("src"));
             }
+
             if(HttpClient::parseURL(s_url)[1] == _client.getAddress())
             {
-                //addURL(s_url, depth);
-                _queue.addURL(s_url, depth);
+                _queue.addURL(s_url, depth + 1);
             }
         }
     }
@@ -401,77 +306,21 @@ void HttpDownloader::download(string url)
     }
     catch(const Exception &ex)
     {
-        //cerr << ex.what() << endl;
         Log::w(ex);
         return;
     }
     for(unsigned int i = 0; i < _nb_p_th; i++)
     {
         thread th(HttpDownloader::sParse, this);
-        _th_p_end[th.get_id()] = true;
         _p_threads.push_back(move(th));
     }
 
     for(unsigned int i = 0; i < _nb_d_th; i++)
     {
         thread th(HttpDownloader::sGet, this);
-        _th_d_end[th.get_id()] = true;
         _d_threads.push_back(move(th));
     }
-    //addURL(url);
-    _queue.addURL(url, 0);
-}
-
-bool HttpDownloader::isAdded(const string &url)
-{
-    for(unsigned int i = 0; i < _d_urls.size(); i++)
-    {
-        if(_d_urls[i] == url)
-        {
-            return true;
-        }
-    }
-    return false;
-}
-
-bool HttpDownloader::isDEnd()
-{
-    if(_d_index != _d_urls.size())
-    {
-        return false;
-    }
-    for(map<thread::id, bool>::iterator it = _th_d_end.begin(); it != _th_d_end.end(); it++)
-    {
-        if(!it->second && it->first != this_thread::get_id())
-        {
-            return false;
-        }
-    }
-    return true;
-}
-
-bool HttpDownloader::isPEnd()
-{
-    if(_p_index != _p_files.size())
-    {
-        cout << "ici" << endl;
-        return false;
-    }
-    for(map<thread::id, bool>::iterator it = _th_p_end.begin(); it != _th_p_end.end(); it++)
-    {
-        if(!it->second && it->first != this_thread::get_id())
-        {
-            cout << "ici1" << endl;
-            return false;
-        }
-    }
-            cout << "ici2" << endl;
-    return true;
-}
-
-bool HttpDownloader::isEnd()
-{
-    return isDEnd() && isPEnd();
+    _queue.addURL(url);
 }
 
 string HttpDownloader::createURL(const string &path)
