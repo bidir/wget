@@ -38,11 +38,11 @@ class ExHTMLTag : public Exception
         /* ====================  Constructors  ==================== */
         ExHTMLTag
             (
-                 const string &msg,
-                 const string &file,
+                 const std::string &msg,
+                 const std::string &file,
                  int line,
-                 const string &function
-            ) throw():Exception(ERR_HTTP_PARSER, msg, file, line, function){};
+                 const std::string &function
+            ) throw():Exception(ERR::HTTP_PARSER, msg, file, line, function){};
 };
 /* -----************************  end of class  ************************----- \\
            ExHTMLTag

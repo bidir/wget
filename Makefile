@@ -3,13 +3,13 @@ BIN=wget
 CXXFLAGS=-std=c++11 -O0 -g -W -Wall -fdiagnostics-color
 LDFLAGS=
 
-LIBS=-lboost_system -lpthread -lboost_filesystem
-
+LIBS=-lboost_system -lpthread -lboost_filesystem -lssl -lcrypto
 COMP=g++
 CXX=$(COMP) $(CXXFLAGS)
 LD=$(COMP)
 
 SRCS=$(wildcard *.cpp)
+#SRCS=Exceptions.cpp tools.cpp Log.cpp BasicClient.cpp SSLClient.cpp Client.cpp HttpClient.cpp HttpDownloaderQueue.cpp HTMLTagParser.cpp HTMLTag.cpp HttpDownloader.cpp main.cpp 
 #SRCS=tools.cpp Exceptions.cpp Log.cpp Client.cpp HttpClient.cpp main.cpp
 OBJS = $(SRCS:.cpp=.o)
 DEPS = $(SRCS:.cpp=.d)

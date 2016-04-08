@@ -45,9 +45,9 @@ class ExHttpClient : public Exception
         ExHttpClient
             (
              int code,
-             const string &file,
+             const std::string &file,
              int line,
-             const string &function
+             const std::string &function
             ) throw():Exception(code, "Erreur HTTP", file, line, function){};
 
 
@@ -99,11 +99,11 @@ class ExInvalidProtocole : public Exception
         /* ====================  Constructors  ==================== */
         ExInvalidProtocole
             (
-                 string msg,
-                 const string &file,
+                 std::string msg,
+                 const std::string &file,
                  int line,
-                 const string &function
-            ) throw():Exception(ERR_INVALID_PROTOCOLE, "Le Protocole " + msg + " n'est pas pris en charge.", file, line, function){};
+                 const std::string &function
+            ) throw():Exception(ERR::INVALID_PROTOCOLE, "Le protocole " + msg + " n'est pas pris en charge.", file, line, function){};
 
 
         /* ====================  Accessors     ==================== */

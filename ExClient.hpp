@@ -42,11 +42,11 @@ class ExInvalidURL : public Exception
         /* ====================  Constructors  ==================== */
         ExInvalidURL
             (
-             const string &msg,
-             const string &file,
+             const std::string &msg,
+             const std::string &file,
              int line,
-             const string &function
-            ) throw():Exception(ERR_INVALID_URL, msg, file, line, function){};
+             const std::string &function
+            ) throw():Exception(ERR::INVALID_URL, msg, file, line, function){};
 };
 /* -----************************  end of class  ************************----- \\
            ExInvalidURL
@@ -69,12 +69,12 @@ class ExReadSocket : public Exception
         /* ====================  Constructors  ==================== */
         ExReadSocket
             (
-             const string &msg,
-             const string &file,
+             const std::string &msg,
+             const std::string &file,
              int line,
-             const string &function
+             const std::string &function
             )
-            throw():Exception(ERR_READ_SOCKET, msg, file, line, function){};
+            throw():Exception(ERR::READ_SOCKET, msg, file, line, function){};
 };
 /* -----************************  end of class  ************************----- \\
            ExReadSocket
@@ -97,12 +97,12 @@ class ExCloseConnection : public Exception
         /* ====================  Constructors  ==================== */
         ExCloseConnection
             (
-             const string &msg,
-             const string &file,
+             const std::string &msg,
+             const std::string &file,
              int line,
-             const string &function
+             const std::string &function
             )
-            throw():Exception(ERR_READ_SOCKET, msg, file, line, function){};
+            throw():Exception(ERR::READ_SOCKET, msg, file, line, function){};
 };
 /* -----************************  end of class  ************************----- \\
            ExCloseConnection

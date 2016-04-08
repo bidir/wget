@@ -25,22 +25,30 @@
  * =============================================================================
  */
 
+#define GenEx(x, ...) x(__VA_ARGS__, __FILE__, __LINE__, __FUNCTION__)
 
-#define OK  0
-#define ERR_INVALID_URL 1
-#define ERR_READ_SOCKET 2
-#define ERR_OUTPUT_FILE 3
-#define ERR_HTTP_PARSER 4
-#define ERR_OPEN_FILE 5
-#define ERR_CREATE_DIR 6
-#define ERR_INVALID_PROTOCOLE 6
+
+typedef enum
+{
+    /* 000 */     OK,
+    /* 001 */     NOT_OK,
+    /* 002 */     WAR,
+    /* 003 */     INF,
+    /* 004 */     DEB,
+    /* 005 */     INVALID_URL,
+    /* 006 */     READ_SOCKET,
+    /* 007 */     OUTPUT_FILE,
+    /* 008 */     HTTP_PARSER,
+    /* 009 */     OPEN_FILE,
+    /* 010 */     CREATE_DIR,
+    /* 011 */     INVALID_PROTOCOLE
+
+} ERR;
 
 
 #include <iostream>
 #include <exception>
 #include <string>
-
-using namespace std;
 
 
 /* ////////////////////////////////////|\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\ \\
@@ -52,35 +60,36 @@ using namespace std;
 // |....----------------------------------------------------------------....| \\
 // |....°°°°°°°OOOOOOOOO00000000000000000000000000000000OOOOOOOOO°°°°°°°....| \\
 // \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\|///////////////////////////////////// */
-class Exception : public exception
+class Exception : public std::exception
 {
     private:
         /* ====================  Data members  ==================== */
         int _code;
         int _line;
-        string _file;
-        string _function;
-        string _msg;
+        std::string _file;
+        std::string _function;
+        std::string _msg;
 
 
     public:
         /* ====================  Constructors  ==================== */
-        Exception(int code, const string &msg, const string &file, int line, const string &function) throw();
+        Exception(int code, const std::string &msg, const std::string &file, int line, const std::string &function) throw();
+        Exception(int code, const char *msg, const char *file, int line, const char *function) throw();
         virtual ~Exception() throw();
 
 
         /* ====================  Accessors     ==================== */
         int getCode() const;
         int getLine() const;
-        string getFile() const;
-        string getFunction() const;
-        string getMessage() const;
+        std::string getFile() const;
+        std::string getFunction() const;
+        std::string getMessage() const;
 
 
         /* ====================  Mutators      ==================== */
         void setLine(int line);
-        void setFile(string file);
-        void setFunction(string function);
+        void setFile(std::string file);
+        void setFunction(std::string function);
 
 
 
@@ -120,11 +129,11 @@ class ExOpeningFile : public Exception
         /* ====================  Constructors  ==================== */
         ExOpeningFile
             (
-                 const string &msg,
-                 const string &file,
+                 const std::string &msg,
+                 const std::string &file,
                  int line,
-                 const string &function
-            ) throw():Exception(ERR_OPEN_FILE, msg, file, line, function){};
+                 const std::string &function
+            ) throw():Exception(ERR::OPEN_FILE, msg, file, line, function){};
 };
 /* -----************************  end of class  ************************----- \\
        ExOpeningFile
@@ -147,11 +156,11 @@ class ExCreatingDir : public Exception
         /* ====================  Constructors  ==================== */
         ExCreatingDir
             (
-                 const string &msg,
-                 const string &file,
+                 const std::string &msg,
+                 const std::string &file,
                  int line,
-                 const string &function
-            ) throw():Exception(ERR_CREATE_DIR, msg, file, line, function){};
+                 const std::string &function
+            ) throw():Exception(ERR::CREATE_DIR, msg, file, line, function){};
 };
 /* -----************************  end of class  ************************----- \\
        ExCreatingDir

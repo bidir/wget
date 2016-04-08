@@ -25,9 +25,6 @@
 #include <map>
 
 
-using namespace std;
-
-
 /* ////////////////////////////////////|\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\ \\
 // |....oooooooOOOO000000000000000000000000000000000000000000OOOOooooooo....| \\
 // |....---------------|             class             |----------------....| \\
@@ -39,8 +36,8 @@ class HTMLTag
 {
     private:
         /* ====================  Data members  ==================== */
-        string _name;
-        map<string, string> _attrs;
+        std::string _name;
+        std::map<std::string, std::string> _attrs;
 
 
     public:
@@ -49,9 +46,9 @@ class HTMLTag
 
 
         /* ====================  Accessors     ==================== */
-        string getName();
-        map<string, string> getAttributes();
-        string getAttribute(string name);
+        std::string getName();
+        std::map<std::string, std::string> getAttributes();
+        std::string getAttribute(std::string name);
 
 
         /* ====================  Mutators      ==================== */
@@ -63,15 +60,15 @@ class HTMLTag
 
 
         /* ====================  Methods       ==================== */
-        string parse(const string &str);
-        string parse(const string &str, const string &tagname);
-        bool isAttributeExists(string attr);
+        std::string parse(const std::string &str);
+        std::string parse(const std::string &str, const std::string &tagname);
+        bool isAttributeExists(std::string attr);
 
 
     protected:
         /* ====================  Methods       ==================== */
-        string parseTag(const string &str);
-        void parseAttrs(const string &str);
+        std::string parseTag(const std::string &str);
+        void parseAttrs(const std::string &str);
 };
 /* -----************************  end of class  ************************----- \\
    HTMLTag

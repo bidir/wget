@@ -1,5 +1,7 @@
 -> Compiler
     make
+    Le programme nécessite la libraire libssl-dev et libboost-all-dev.
+
 -> Executer
     ./bin/wget <url> <fichier où enregistrer>
 -> Nettoyer

@@ -27,9 +27,6 @@
 #include "HTMLTag.hpp"
 
 
-using namespace std;
-
-
 /* ////////////////////////////////////|\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\ \\
 // |....oooooooOOOO000000000000000000000000000000000000000000OOOOooooooo....| \\
 // |....---------------|             class             |----------------....| \\
@@ -41,23 +38,23 @@ class HTMLTagParser
 {
     private:
         /* ====================  Data members  ==================== */
-        string _content;
-        istream *_in;
+        std::string _content;
+        std::istream *_in;
 
-        vector<string> _tags_to_parse;
-        vector<HTMLTag> _tags;
+        std::vector<std::string> _tags_to_parse;
+        std::vector<HTMLTag> _tags;
 
 
     public:
         /* ====================  Constructors  ==================== */
-        HTMLTagParser(istream &in);
+        HTMLTagParser(std::istream &in);
 
 
         /* ====================  Accessors     ==================== */
-        vector<HTMLTag> &getParsedTags();
+        std::vector<HTMLTag> &getParsedTags();
         HTMLTag getParsedTag(int n);
-        vector<string> &getTagsToParse();
-        string getTagToParse(int n);
+        std::vector<std::string> &getTagsToParse();
+        std::string getTagToParse(int n);
 
 
         /* ====================  Mutators      ==================== */
@@ -69,15 +66,15 @@ class HTMLTagParser
 
 
         /* ====================  Methods       ==================== */
-        void addTagToParse(string tag);
+        void addTagToParse(std::string tag);
         void parse();
         void removeComments();
 
 
     protected:
         /* ====================  Methods       ==================== */
-        string readNextTag();
-        bool parseHead(const string &file);
+        std::string readNextTag();
+        bool parseHead(const std::string &file);
         void searchTags();
 };
 /* -----************************  end of class  ************************----- \\

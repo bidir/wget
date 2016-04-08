@@ -1,8 +1,31 @@
-httpdownloader: programme mutithread qui permet d'effectuer des téléchargements grâce au protocole HTTP.
+NOM:
+wget - Programme de téléchargement basé sur le protocole HTTP.
 
-Options:
- -h --help           afficher l'aide sur httpdownloader.
- -p --prof           choisir la profondeur de téléchargement.
- -d --debug          afficher des informations de débugage.
-    --nb-th-get      permet de fixer le nombre de threads de téléchargement.
-    --nb-th-analyse  permet de fixer le nombre de threads d'analyse.
+NOTES:
+Ce programme nécessite la librairie libssl-dev et libboost-all-dev.
+
+SYNOPSIS:
+wget [Options] <url> <rep|fichier>
+wget [Options] <url> [Options] <rep|fichier>
+wget [Options] <url> [Options] <rep|fichier> [Options]
+
+DESCRIPTION:
+programme mutithread qui permet d'effectuer des téléchargements grâce au protocole HTTP.
+Le programme télécharge le fichier préciser dans <url>, l'analyse et télécharge
+tous les fichiers du même serveur jusqu'à une certaine profondeur.
+Si l'option -s est préciser, alors il faut préciser le nom du fichier dans
+lequel enregistrer la page téléchargée.
+
+OPTIONS:
+  -h  --help
+        afficher l'aide sur httpdownloader.
+  -p  --prof
+        choisir la profondeur de téléchargement.
+  -d  --debug
+        afficher des informations de débugage.
+  -s  --seul-page
+        simple telechargement d'un fichier.
+      --nb-th-get
+        permet de fixer le nombre de threads de téléchargement.
+      --nb-th-analyse
+        permet de fixer le nombre de threads d'analyse.

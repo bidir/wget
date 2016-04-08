@@ -19,6 +19,11 @@
  * =============================================================================
  */
 
+#define LogE(x) Log::e(Exception(ERR::NOT_OK, x, __FILE__, __LINE__, __FUNCTION__))
+#define LogW(x) Log::w(Exception(ERR::WAR   , x, __FILE__, __LINE__, __FUNCTION__))
+#define LogI(x) Log::i(Exception(ERR::INF   , x, __FILE__, __LINE__, __FUNCTION__))
+#define LogD(x) Log::d(Exception(ERR::OK    , x, __FILE__, __LINE__, __FUNCTION__))
+
 #include <iostream>
 #include <vector>
 #include <map>
@@ -44,33 +49,33 @@ class Log
         /* ====================  Data members  ==================== */
         static bool _log;
 
-        static string _e;
-        static string _w;
-        static string _i;
-        static string _d;
+        static std::string _e;
+        static std::string _w;
+        static std::string _i;
+        static std::string _d;
 
-        static mutex _m_write;
+        static std::mutex _m_write;
 
-        static ostream *_d_out;
-        static vector<ostream *> _out;
+        static std::ostream *_d_out;
+        static std::vector<std::ostream *> _out;
 
         /* ====================  Methods       ==================== */
     public:
         static void init();
-        static void add(ostream &out);
-        static void setDebugOut(ostream &out);
+        static void add(std::ostream &out);
+        static void setDebugOut(std::ostream &out);
         static void stop();
-        static void write(const string &msg);
-        static void writeD(const string &msg);
-        static void print(const string &label, const Exception &ex);
-        static void print(const string &label, const string &msg);
-        static void e(const string &msg);
+        static void write(const std::string &msg);
+        static void writeD(const std::string &msg);
+        static void print(const std::string &label, const Exception &ex);
+        static void print(const std::string &label, const std::string &msg);
+        static void e(const std::string &msg);
         static void e(const Exception &ex);
-        static void w(const string &msg);
+        static void w(const std::string &msg);
         static void w(const Exception &ex);
-        static void i(const string &msg);
+        static void i(const std::string &msg);
         static void i(const Exception &ex);
-        static void d(const string &msg);
+        static void d(const std::string &msg);
         static void d(const Exception &ex);
 };
 /* -----************************  end of class  ************************----- \\

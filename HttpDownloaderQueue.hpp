@@ -29,9 +29,6 @@
 #include <map>
 
 
-using namespace std;
-
-
 class HttpDownloaderQueueListener;
 
 
@@ -48,23 +45,23 @@ class HttpDownloaderQueue
         /* ====================  Data members  ==================== */
         bool _stop;
 
-        mutex _m_put_url;
-        mutex _m_get_url;
-        mutex _m_put_file;
-        mutex _m_get_file;
-        condition_variable _cv_url;
-        condition_variable _cv_file;
+        std::mutex _m_put_url;
+        std::mutex _m_get_url;
+        std::mutex _m_put_file;
+        std::mutex _m_get_file;
+        std::condition_variable _cv_url;
+        std::condition_variable _cv_file;
 
-        vector<unsigned int> _d_depths;
-        vector<unsigned int> _p_depths;
-        vector<string> _urls;
-        vector<string> _files;
+        std::vector<unsigned int> _d_depths;
+        std::vector<unsigned int> _p_depths;
+        std::vector<std::string> _urls;
+        std::vector<std::string> _files;
 
         HttpDownloaderQueueListener *_listener;
 
-        map<thread::id, bool> _th_d_end;
-        map<thread::id, bool> _th_p_end;
-        map<thread::id, unsigned int> _th_depth;
+        std::map<std::thread::id, bool> _th_d_end;
+        std::map<std::thread::id, bool> _th_p_end;
+        std::map<std::thread::id, unsigned int> _th_depth;
 
 
     public:
@@ -85,12 +82,12 @@ class HttpDownloaderQueue
 
 
         /* ====================  Methods       ==================== */
-        bool hasURL(const string &url);
-        bool hasFile(const string &url);
-        void addURL(const string &url, unsigned int depth = 1);
-        void addFile(const string &url, unsigned int depth = 1);
-        string getURL();
-        string getFile();
+        bool hasURL(const std::string &url);
+        bool hasFile(const std::string &url);
+        void addURL(const std::string &url, unsigned int depth = 0);
+        void addFile(const std::string &url, unsigned int depth = 0);
+        std::string getURL();
+        std::string getFile();
         void stop();
         bool empty();
         bool isDEnd();
@@ -101,6 +98,9 @@ class HttpDownloaderQueue
         void notifyURL();
         void notifyFile();
         void notifyEnd();
+
+        unsigned int getNbRunningDThreads();
+        unsigned int getNbRunningPThreads();
 
 
     protected:

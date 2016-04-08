@@ -28,8 +28,8 @@
 #include "tools.hpp"
 #include "Log.hpp"
 
+using namespace std;
 
-using namespace boost::filesystem; 
 typedef boost::filesystem::path Path;
 typedef boost::system::error_code ErrorCode;
 typedef boost::system::system_error SystemError;
@@ -44,6 +44,43 @@ namespace tools
         transform(str->begin(), str->end(), str->begin(), ::toupper);
     }
 
+    string toString(const int &val)
+    {
+        try
+        {
+            return lexical_cast<string>(val);
+        }
+        catch(bad_lexical_cast &e)
+        {
+            //throw getException(e.what(), __FILE__, __LINE__);
+            throw GenEx(Exception, 0, e.what());
+        }
+    }
+
+    string toString(const unsigned int &val)
+    {
+        try
+        {
+            return lexical_cast<string>(val);
+        }
+        catch(bad_lexical_cast &e)
+        {
+            throw GenEx(Exception, 0, e.what());
+        }
+    }
+
+    string toString(size_t &val)
+    {
+        try
+        {
+            return lexical_cast<string>(val);
+        }
+        catch(bad_lexical_cast &e)
+        {
+            throw GenEx(Exception, 0, e.what());
+        }
+    }
+
     int toInt(const char *str)
     {
         int ret;
@@ -53,7 +90,7 @@ namespace tools
         }
         catch(bad_lexical_cast &e)
         {
-            throw getException(e.what(), __FILE__, __LINE__);
+            throw GenEx(Exception, 0, e.what());
         }
         return ret;
     }
@@ -67,11 +104,7 @@ namespace tools
     {
         if(str[0] == '-')
         {
-            throw getException(
-                                    string(str) + " n'est pas un entier non signe",
-                                    __FILE__,
-                                    __LINE__
-                                );
+            throw GenEx(Exception, 0, string(str) + " n'est pas un entier non signe");
         }
         unsigned int ret;
         try
@@ -80,7 +113,7 @@ namespace tools
         }
         catch(bad_lexical_cast &e)
         {
-            throw getException(e.what(), __FILE__, __LINE__);
+            throw GenEx(Exception, 0, e.what());
         }
         return ret;
     }
@@ -160,13 +193,7 @@ namespace tools
             if(ec)
             {
                 SystemError es(ec);
-                throw ExCreatingDir
-                    (
-                         es.what(),
-                         __FILE__,
-                         __LINE__,
-                         __FUNCTION__
-                    );
+                throw GenEx(ExCreatingDir, es.what());
             }
         }
     }
@@ -178,40 +205,11 @@ namespace tools
 
     bool isDirExists(const char *path)
     {
-        return exists(Path(path));
+        return exists(Path(path)) && is_directory(Path(path));
     }
 
     bool isDirExists(const string &path)
     {
         return isDirExists(path.c_str());
-    }
-
-    void printHttpClientInfos(HttpClient &client)
-    {
-        ostringstream oss;
-        oss << "----------- Infos recuperees dans l'en-tete ------------ " << endl;
-        if(client.isChunked())
-        {
-            oss << "chunked = true" << endl;
-        }
-        else
-        {
-            oss << "chunked = false" << endl;
-        }
-        oss << "statut = " << client.getStatus() << endl;
-        oss << "message du statut = " << client.getStatusMessage() << endl;
-        oss << "Taille des donnees = " << client.getContentLength() << endl;
-        oss << "Type des donnees = " << client.getContentType() << endl;
-        oss << "Version http = " << client.getHttpVersion() << endl;
-        oss << "Unite donnees = " << client.getAcceptRanges() << endl;
-        oss << "Location = " << client.getLocation() << endl;
-        oss << "Encoding = " << client.getEncoding() << endl;
-        if(client.getUnparsedHeader() != "")
-        {
-            oss << "----------------- Le reste de l'en-tete ---------------- ";
-            oss << endl << client.getUnparsedHeader() << endl;
-        }
-        oss << "-------------------------------------------------------- " << endl;
-        Log::i(oss.str());
     }
 }

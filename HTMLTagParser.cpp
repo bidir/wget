@@ -26,6 +26,9 @@
 #include "Log.hpp"
 
 
+using namespace std;
+
+
 /* ////////////////////////////////////|\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\ \\
 // |....oooooooOOOO000000000000000000000000000000000000000000OOOOooooooo....| \\
 // |....---------------|             class             |----------------....| \\
@@ -97,7 +100,6 @@ void HTMLTagParser::searchTags()
             }
             catch(const ExHTMLTag &e)
             {
-                Log::w(e);
                 parse = false;
                 break;
             }
@@ -112,7 +114,7 @@ void HTMLTagParser::addTagToParse(string tag)
         if(_tags_to_parse[i] == tag)
             return;
     }
-    _tags_to_parse.push_back(tag);
+    _tags_to_parse.push_back(tools::toUpper(tag));
 }
 
 void HTMLTagParser::removeComments()

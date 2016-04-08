@@ -21,6 +21,9 @@
 #include "HttpDownloaderQueue.hpp"
 
 
+using namespace std;
+
+
 /* ====================  Constructors  ==================== */
 HttpDownloaderQueue::HttpDownloaderQueue():
     _stop(false),
@@ -33,7 +36,8 @@ HttpDownloaderQueue::HttpDownloaderQueue():
     _d_depths(0),
     _p_depths(0),
     _urls(0),
-    _files(0)
+    _files(0),
+    _listener(NULL)
 {}
 
 
@@ -162,12 +166,18 @@ bool HttpDownloaderQueue::isDEnd()
     {
         return false;
     }
-    for(map<thread::id, bool>::iterator it = _th_d_end.begin(); it != _th_d_end.end(); it++)
+    unsigned int size = 0;
+    for(
+            map<thread::id, bool>::iterator it = _th_d_end.begin();
+            size < _th_d_end.size();
+            it++
+       )
     {
         if(!it->second && it->first != this_thread::get_id())
         {
             return false;
         }
+        size++;
     }
     return true;
 }
@@ -178,12 +188,18 @@ bool HttpDownloaderQueue::isPEnd()
     {
         return false;
     }
-    for(map<thread::id, bool>::iterator it = _th_p_end.begin(); it != _th_p_end.end(); it++)
+    unsigned int size = 0;
+    for(
+            map<thread::id, bool>::iterator it = _th_p_end.begin();
+            size < _th_p_end.size();
+            it++
+       )
     {
         if(!it->second && it->first != this_thread::get_id())
         {
             return false;
         }
+        size++;
     }
     return true;
 }
@@ -214,4 +230,50 @@ void HttpDownloaderQueue::notifyEnd()
     _th_d_end[this_thread::get_id()] = true;
     _cv_url.notify_one();
     _cv_file.notify_one();
+}
+
+unsigned int HttpDownloaderQueue::getNbRunningDThreads()
+{
+    if(_stop)
+    {
+        return 0;
+    }
+    unsigned int nb(0);
+    unsigned int size = 0;
+    for(
+            map<thread::id, bool>::iterator it = _th_d_end.begin();
+            size < _th_d_end.size();
+            it++
+       )
+    {
+        if(!it->second)
+        {
+            nb++;
+        }
+        size++;
+    }
+    return nb;
+}
+
+unsigned int HttpDownloaderQueue::getNbRunningPThreads()
+{
+    if(_stop)
+    {
+        return 0;
+    }
+    unsigned int nb(0);
+    unsigned int size = 0;
+    for(
+            map<thread::id, bool>::iterator it = _th_p_end.begin();
+            size < _th_p_end.size();
+            it++
+       )
+    {
+        if(!it->second)
+        {
+            nb++;
+        }
+        size++;
+    }
+    return nb;
 }

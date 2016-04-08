@@ -22,8 +22,8 @@
 
 #include <vector>
 #include <thread>
-#include <mutex>
-#include <condition_variable>
+#include <string>
+
 #include "HttpClient.hpp"
 #include "HTMLTag.hpp"
 #include "HttpDownloaderQueue.hpp"
@@ -41,42 +41,53 @@ class HttpDownloader
 {
     private:
         /* ====================  Data members  ==================== */
+        bool _only_page;
+        bool _print;
+        unsigned int _print_refresh;
         unsigned int _depth;
         unsigned int _nb_d_th;
         unsigned int _nb_p_th;
 
-        string _path;
+        std::string _path;
+        std::mutex _m_print;
+        std::thread *_th_print;
 
         HttpClient _client;
-
         HttpDownloaderQueue _queue;
 
-        vector<thread> _d_threads;
-        vector<thread> _p_threads;
+        std::vector<std::thread> _d_threads;
+        std::vector<std::thread> _p_threads;
 
 
     public:
         /* ====================  Constructors  ==================== */
         HttpDownloader();
-        HttpDownloader(string path);
+        HttpDownloader(std::string path);
         HttpDownloader(int depth);
-        HttpDownloader(string path, int depth);
+        HttpDownloader(std::string path, int depth);
         HttpDownloader(const HttpDownloader &h) = delete;
+        ~HttpDownloader();
 
 
         /* ====================  Accessors     ==================== */
+        bool getOnlyPage();
+        bool getPrint();
+        unsigned int getPrintRefresh();
         unsigned int getDepth();
         unsigned int getNbDownloadThreads();
         unsigned int getNbParseThreads();
-        string getPath();
+        std::string getPath();
         HttpDownloaderQueue &getQueue();
 
 
         /* ====================  Mutators      ==================== */
+        void setOnlyPage(bool only = false);
+        void setPrint(bool print);
+        void setPrintRefresh(unsigned int milliseconds);
         void setDepth(unsigned int depth);
         void setNbDownloadThreads(unsigned int nb);
         void setNbParseThreads(unsigned int nb);
-        void setPath(string path);
+        void setPath(std::string path);
 
 
         /* ====================  Operators     ==================== */
@@ -84,19 +95,21 @@ class HttpDownloader
 
 
         /* ====================  Methods       ==================== */
-        void addTag(const string &tag, const string &attr = "");
-        void removeTag(const string &balise);
-        void download(string url);
+        void download(std::string url);
+        void printInfos();
         void wait();
         
 
     protected:
         /* ====================  Methods       ==================== */
+        static void sPrintInfos(HttpDownloader *downloader);
         static void sGet(HttpDownloader *httpDownloader);
         static void sParse(HttpDownloader *httpDownloader);
         void get();
         void parse();
-        string createURL(const string &path);
+        void lockPrint();
+        void unlockPrint();
+        std::string createURL(const std::string &path);
 };
 /* -----************************  end of class  ************************----- \\
    HttpDownloader

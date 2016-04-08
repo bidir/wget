@@ -13,7 +13,7 @@
  * Created: 02/22/16 15:27:27
  * Revision: none
  *
- * Commants: none
+ * Commants: Mettre le protocole dans BasicClient?
  *
  * Compiler: gcc
  *
@@ -24,6 +24,7 @@
 
 #include <map>
 #include "Client.hpp"
+#include "SSLClient.hpp"
 
 
 
@@ -38,73 +39,76 @@
 // |....----------------------------------------------------------------....| \\
 // |....°°°°°°°OOOOOOOOO00000000000000000000000000000000OOOOOOOOO°°°°°°°....| \\
 // \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\|///////////////////////////////////// */
-class HttpClient : public Client
+class HttpClient
 {
         /* ====================  Data members  ==================== */
     public:
-        static string reg_prot;
-        static string reg_addr;
-        static string reg_port;
-        static string reg_path;
-        static string reg_file;
-        static string reg_quer;
-        static string reg_queries;
+        static std::string reg_prot;
+        static std::string reg_addr;
+        static std::string reg_port;
+        static std::string reg_path;
+        static std::string reg_file;
+        static std::string reg_quer;
+        static std::string reg_queries;
     private:
+        BasicClient* _client;
         bool _chunked;
 
         unsigned int _status;
         int _content_length;
 
-        string _protocole;
-        string _path;
-        string _filename;
-        string _content_type;
-        string _status_msg;
-        string _http_version;
-        string _connection;
-        string _accept_ranges;
-        string _header;
-        string _unparsed_header;
-        string _data;
-        string _location;
-        string _encoding;
+        std::string _protocole;
+        std::string _path;
+        std::string _filename;
+        std::string _content_type;
+        std::string _status_msg;
+        std::string _http_version;
+        std::string _connection;
+        std::string _accept_ranges;
+        std::string _header;
+        std::string _unparsed_header;
+        std::string _data;
+        std::string _location;
+        std::string _encoding;
 
-        map<string, string> _queries;
+        std::map<std::string, std::string> _queries;
 
 
     public:
         /* ====================  Constructors  ==================== */
         HttpClient();
-        HttpClient(string addr);
-        HttpClient(string addr, string port);
+        HttpClient(BasicClient *client);
+        HttpClient(std::string addr);
+        HttpClient(std::string addr, std::string port);
+        virtual ~HttpClient();
 
 
         /* ====================  Accessors     ==================== */
         bool isChunked();
         unsigned int getStatus();
         int getContentLength();
-        string getProtocole();
-        string getPath();
-        string getFilename();
-        string getContentType();
-        string getStatusMessage();
-        string getHttpVersion();
-        string getConnection();
-        string getAcceptRanges();
-        string getHeader();
-        string getUnparsedHeader();
-        string getData();
-        string getLocation();
-        string getEncoding();
+        std::string getProtocole();
+        std::string getPath();
+        std::string getFilename();
+        std::string getContentType();
+        std::string getStatusMessage();
+        std::string getHttpVersion();
+        std::string getConnection();
+        std::string getAcceptRanges();
+        std::string getHeader();
+        std::string getUnparsedHeader();
+        std::string getData();
+        std::string getLocation();
+        std::string getEncoding();
 
-        map<string, string> getQueries();
-        string getQuery(string name);
+        std::map<std::string, std::string> getQueries();
+        std::string getQuery(std::string name);
 
 
         /* ====================  Mutators      ==================== */
-        void setPath(const string &path);
-        void setFilename(const string &filename);
-        void setProtocole(const string &protocole);
+        void setPath(const std::string &path);
+        void setFilename(const std::string &filename);
+        void setProtocole(const std::string &protocole);
 
 
         /* ====================  Operators     ==================== */
@@ -112,27 +116,79 @@ class HttpClient : public Client
 
 
         /* ====================  Methods       ==================== */
+        BasicClient *getTCPClient();
+        void connect();
+        void close();
         void get(); //Envoyer une requête GET.
+        void get(const std::string &file); //Envoyer une requête GET.
         /* Cette fonction permet de décomposer une URL en "nom serveur" et
          * "chemin" vers le fichier à récupérer.*/
-        static string getServerFromURL(string url);
-        static vector<string> parseURL(string url, bool strict = false);
-        void url(string url, bool strict = false);
+        static std::string getServerFromURL(std::string url);
+        static std::vector<std::string> parseURL(std::string url, bool strict = false);
+        void url(std::string url, bool strict = false);
         virtual void parse();   //Permet de parser la réponse.
         void parseHeader(); //Permet de parser l'en-tête de la réponse.
         void recuperateData(); //Permet de parser l'en-tête de la réponse.
+        void printInfos();
+
 
 
     protected:
         /* ====================  Methods       ==================== */
         void parseChunkedData(); //Permet de parser une réponse chunked.
         void parsePath();
-        void parseQuery(const string &queries);
-        int hexToDec(const string &line);//Conversion Hexadécimal => Décimal.
+        void parseQuery(const std::string &queries);
+        int hexToDec(const std::string &line);//Conversion Hexadécimal => Décimal.
 };
 /* -----************************  end of class  ************************----- \\
         HttpClient
 // -----****************************************************************----- */
 
 
+
+/* ////////////////////////////////////|\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\ \\
+// |....oooooooOOOO000000000000000000000000000000000000000000OOOOooooooo....| \\
+// |....oooooooOOOO00000********°°°°°^^^^^°°°°°********000000OOOOooooooo....| \\
+// |....---------------|             class             |----------------....| \\
+// |....°°°°°°°°°°°°°°°                                 °°°°°°°°°°°°°°°°....| \\
+    Class: HttpsClient
+    Description: Cette classe, qui hérite de Client, permet de définir une
+    connexin TCP avec un serveur HTTPS.
+// |....----------------------------------------------------------------....| \\
+// |....°°°°°°°OOOOOOOOO00000000000000000000000000000000OOOOOOOOO°°°°°°°....| \\
+// \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\|///////////////////////////////////// */
+class HttpsClient : public HttpClient
+{
+    /* ====================  Data members  ==================== */
+        Client _s_client;
+
+
+    public:
+        /* ====================  Constructors  ==================== */
+        HttpsClient();
+        HttpsClient(BasicClient *client);
+        HttpsClient(std::string addr);
+        HttpsClient(std::string addr, std::string port);
+        virtual ~HttpsClient();
+
+
+        /* ====================  Accessors     ==================== */
+
+
+        /* ====================  Mutators      ==================== */
+
+
+        /* ====================  Operators     ==================== */
+
+
+
+        /* ====================  Methods       ==================== */
+
+
+    protected:
+        /* ====================  Methods       ==================== */
+};
+/* -----************************  end of class  ************************----- \\
+        HttpClient
+// -----****************************************************************----- */
 #endif

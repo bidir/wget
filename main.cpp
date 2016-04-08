@@ -18,12 +18,7 @@
 
 
 #include <iostream>
-//#include <unistd.h>
-//#include <cstring>
-//#include <sys/socket.h>
-//#include <netdb.h>
 #include <fstream>
-#include <regex>
 
 #include "tools.hpp"
 #include "HttpClient.hpp"
@@ -49,68 +44,68 @@ int main(int argc, char *argv[])
     Log::setDebugOut(d_file);
     try
     {
-        /*
-        HttpTag httpTag;
-        cout << "---------------------------------" << endl;
-        httpTag.parse("<merde attr1=\"merde1\" attr2=\"merde2\" />");
-        cout << "---------------------------------" << endl;
-        httpTag.parse("<merde attr1=\"merde1\" attr2=\"merde2\">salut la merde</merde>");
-        */
+        bool only_page(false);
+        unsigned int nb_get(3), nb_par(3), depth(3);
+        string path(""), url("");
 
-        if(argc >= 3)
+        for(int i = 1; i < argc; i++)
         {
-            if(!tools::isDirExists(argv[argc - 1]))
+            if(string(argv[i]) == "-h" || string(argv[i]) == "--help")
             {
-                cerr << "ERREUR: Le repertoire \"" <<  argv[argc - 1] << "\" n'existe pas" << endl;
+                help();
                 end();
-                return EXIT_FAILURE;
+                return 0;
             }
-            HttpDownloader downloader(argv[argc-1]);
-            for(int i = 1; i < argc - 2; i++)
+            else if(string(argv[i]) == "-s" || string(argv[i]) == "--seul-page")
             {
-                //int depth(3);
-                if(string(argv[i]) == "-h" || string(argv[i]) == "--help")
+                only_page = true;
+            }
+            else if(string(argv[i]) == "-p" || string(argv[i]) == "--prof")
+            {
+                if(i+1 > argc)
                 {
-                    help();
+                    cerr << "ERREUR: L'option \"" << argv[i] << "\" doit etre suivi d'un nombre." << endl;
                     end();
-                    return 0;
+                    return EXIT_FAILURE;
                 }
-                else if(string(argv[i]) == "-p" || string(argv[i]) == "--prof")
+                i++;
+                depth = tools::toUInt(argv[i]);
+            }
+            else if(string(argv[i]) == "-d" || string(argv[i]) == "--debug")
+            {
+                Log::add(cout);
+            }
+            else if(string(argv[i]) == "--nb-th-get")
+            {
+                if(i+1 > argc)
                 {
-                    if(i >= argc - 3)
-                    {
-                        cerr << "ERREUR: L'option \"" << argv[i] << "\" doit etre suivi d'un nombre." << endl;
-                        end();
-                        return EXIT_FAILURE;
-                    }
-                    i++;
-                    downloader.setDepth(tools::toUInt(argv[i]));
+                    cerr << "ERREUR: L'option \"" << argv[i] << "\" doit etre suivi du nombre de threads." << endl;
+                    end();
+                    return EXIT_FAILURE;
                 }
-                else if(string(argv[i]) == "-d" || string(argv[i]) == "--debug")
+                i++;
+                nb_get = tools::toUInt(argv[i]);
+            }
+            else if(string(argv[i]) == "--nb-th-analyse")
+            {
+                if(i+1 > argc)
                 {
-                    Log::add(cout);
+                    cerr << "ERREUR: L'option \"" << argv[i] << "\" doit etre suivi du nombre de threads." << endl;
+                    end();
+                    return EXIT_FAILURE;
                 }
-                else if(string(argv[i]) == "--nb-th-get")
+                i++;
+                nb_par = tools::toUInt(argv[i]);
+            }
+            else
+            {
+                if(url == "")
                 {
-                    if(i >= argc - 3)
-                    {
-                        cerr << "ERREUR: L'option \"" << argv[i] << "\" doit etre suivi du nombre de threads." << endl;
-                        end();
-                        return EXIT_FAILURE;
-                    }
-                    i++;
-                    downloader.setNbDownloadThreads(tools::toUInt(argv[i]));
+                    url = argv[i];
                 }
-                else if(string(argv[i]) == "--nb-th-analyse")
+                else if(path == "")
                 {
-                    if(i >= argc - 3)
-                    {
-                        cerr << "ERREUR: L'option \"" << argv[i] << "\" doit etre suivi du nombre de threads." << endl;
-                        end();
-                        return EXIT_FAILURE;
-                    }
-                    i++;
-                    downloader.setNbParseThreads(tools::toUInt(argv[i]));
+                    path = argv[i];
                 }
                 else
                 {
@@ -119,15 +114,39 @@ int main(int argc, char *argv[])
                     return EXIT_FAILURE;
                 }
             }
-
-            Log::init();
-            Log::e("hey");
-            ///http_get(argv[1], argv[2]);
-            downloader.download(argv[argc-2]);
-            downloader.wait();
-            end();
-            return 0; 
         }
+        if(url == "")
+        {
+            cerr << "ERREUR: il faut preciser une url." << endl;
+            return EXIT_FAILURE;
+        }
+        if(path == "")
+        {
+            cerr << "ERREUR: il faut preciser un repertoire." << endl;
+            return EXIT_FAILURE;
+        }
+        if(!tools::isDirExists(path) && !only_page)
+        {
+            cerr << "ERREUR: Le repertoire \"" <<  argv[argc - 1] << "\" n'existe pas" << endl;
+            end();
+            return EXIT_FAILURE;
+        }
+
+        Log::init();
+        HttpDownloader downloader;
+
+        downloader.setPath(path);
+        downloader.setOnlyPage(only_page);
+        downloader.setNbDownloadThreads(nb_get);
+        downloader.setNbParseThreads(nb_par);
+        downloader.setDepth(depth);
+        downloader.setPrintRefresh(100);
+
+        downloader.download(url);
+        downloader.printInfos();
+        downloader.wait();
+        end();
+        return 0; 
     }
     catch(const Exception &e)
     {
@@ -149,6 +168,7 @@ int main(int argc, char *argv[])
 
 void end()
 {
+    cout << endl;
     log_file.close();
     d_file.close();
 }
@@ -164,69 +184,4 @@ void help()
         cout << str << endl;
     }
     is.close();
-}
-
-void http_get(const char *url, const char *nom_fichier)
-{
-    HttpClient client;
-    client.url(string(url));
-    Log::i("Envoi de la requete " + string(url));
-    try
-    {
-        client.connect();
-    }
-    catch(const exception &e)
-    {
-        cerr << "ERREUR: " << e.what() << endl;
-        throw;
-    }
-
-    client.get();
-    client.setSizeToRead(1000);
-    client.parseHeader();
-    ostringstream oss;
-    oss << "-------------- Infos recuperees dans l'en-tete -------------- " << endl;
-    oss << "chunked = " << client.isChunked() << endl;
-    oss << "statut = " << client.getStatus() << endl;
-    oss << "message du statut = " << client.getStatusMessage() << endl;
-    oss << "Taille des donnees = " << client.getContentLength() << endl;
-    oss << "Type des donnees = " << client.getContentType() << endl;
-    oss << "Version http = " << client.getHttpVersion() << endl;
-    oss << "Unite donnees = " << client.getAcceptRanges() << endl;
-    oss << "Location = " << client.getLocation() << endl;
-    oss << "Encoding = " << client.getEncoding() << endl;
-    oss << "------------------------------------------------------------- " << endl;
-    if(client.getUnparsedHeader() != "")
-    {
-        oss << "------------------- Le reste de l'en-tete ------------------- " << endl
-            << client.getUnparsedHeader() << endl
-            << "------------------------------------------------------------- " << endl;
-    }
-    Log::i(oss.str());
-    if(client.getStatus() != 200 && client.getStatus() != 302)
-    {
-        cerr << "ERREUR " << client.getStatus() << " message '" << client.getStatusMessage() << "'" <<endl;
-        throw Exception(client.getStatus(), "Erreur HTTP: " + client.getStatusMessage(), __FILE__, __LINE__, __FUNCTION__);
-    }
-    if(client.getStatus() == 302)
-    {
-        Log::i("Redirection vers " + client.getLocation());
-        http_get(client.getLocation().c_str(), nom_fichier);
-    }
-    else
-    {
-        Log::i("Ecriture des donnees dans " + string(nom_fichier));
-        ofstream file;
-        file.open(nom_fichier);
-        if(file.fail())
-        {
-            cerr << "ERREUR: impossible d'ouvrir le fichier de sortie \"" << nom_fichier << "\"" << endl;
-            throw Exception(ERR_OUTPUT_FILE, "Erreur pendant l'ouverture du fichier de sortie \"" + string(nom_fichier) +  "\"", __FILE__, __LINE__, __FUNCTION__);
-        }
-        client.writeInOstream(true, file);
-        client.recuperateData();
-        file.close();
-        Log::i("Fermeture de la connexion au serveur " + string(url));
-        client.close(); 
-    }
 }

@@ -20,6 +20,9 @@
 #include "Exceptions.hpp"
 
 
+using namespace std;
+
+
 /* ////////////////////////////////////|\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\ \\
 // |....oooooooOOOO000000000000000000000000000000000000000000OOOOooooooo....| \\
 // |....oooooooOOOO00000********°°°°°^^^^^°°°°°********000000OOOOooooooo....| \\
@@ -39,6 +42,20 @@ Exception::Exception
          int line,
          const string &function
     ) throw():
+    _code(code),
+    _line(line),
+    _file(file),
+    _function(function),
+    _msg(msg)
+{}
+Exception::Exception
+    (
+        int code,
+        const char *msg,
+        const char *file,
+        int line,
+        const char *function
+        ) throw():
     _code(code),
     _line(line),
     _file(file),

@@ -21,34 +21,36 @@
  * =============================================================================
  */
 
+
+
 #include <iostream>
 #include <string>
 
 #include "Exceptions.hpp"
 #include "HttpClient.hpp"
 
-using namespace std;
 
 
 namespace tools
 {
-    void toUpper(string *str);
+    void toUpper(std::string *str);
+    std::string toString(const int &val);
+    std::string toString(const unsigned int &val);
+    std::string toString(size_t &val);
     int toInt(const char *sttr);
-    int toInt(const string &sttr);
+    int toInt(const std::string &sttr);
     unsigned int toUInt(const char *sttr);
-    unsigned int toUInt(const string &sttr);
-    string toUpper(string str);
-    string getCurrentTime();
-    istream &getline(istream &in, string &line);
-    string removeSpaces(const string &str);
-    Exception getException(const string &msg, const char *file, int line);
-    Exception getException(const string &msg, const char *file, int line, const char *func);
+    unsigned int toUInt(const std::string &sttr);
+    std::string toUpper(std::string str);
+    std::string getCurrentTime();
+    std::istream &getline(std::istream &in, std::string &line);
+    std::string removeSpaces(const std::string &str);
+    Exception getException(const std::string &msg, const char *file, int line);
+    Exception getException(const std::string &msg, const char *file, int line, const char *func);
     void createDir(const char *path);
-    void createDir(const string &path);
-    bool isDirExists(const string &path);
-    bool isDirExists(const string &path);
-    void printHttpClientInfos(HttpClient &httpClient);
-
+    void createDir(const std::string &path);
+    bool isDirExists(const std::string &path);
+    bool isDirExists(const std::string &path);
 }
 
 #endif

@@ -25,6 +25,8 @@
 #include "ExHttpClient.hpp"
 
 
+using namespace std;
+
 /* ////////////////////////////////////|\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\ \\
 // |....oooooooOOOO000000000000000000000000000000000000000000OOOOooooooo....| \\
 // |....oooooooOOOO00000********°°°°°^^^^^°°°°°********000000OOOOooooooo....| \\
@@ -36,7 +38,7 @@
 // \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\|///////////////////////////////////// */
 
 /* ====================  Data members  ==================== */
-regex e("(/.*)(/([^/]+\\.[^/]+)?)$");
+//regex e("(/.*)(/([^/]+\\.[^/]+)?)$");
 string HttpClient::reg_prot = "((\\w+)://)";
 string HttpClient::reg_addr = "([0-9a-zA-Z\\._-]+)";
 string HttpClient::reg_port = "(:([0-9]+))";
@@ -48,15 +50,16 @@ string HttpClient::reg_queries = "(([^&;]+)=([^&;]+)[&;]?)";
 
 /* ====================  Constructors  ==================== */
 HttpClient::HttpClient():
-    HttpClient("", "80")
+    HttpClient(new Client("", "80"))
 {}
 
 HttpClient::HttpClient(string addresse):
-    HttpClient(addresse, "80")
+    HttpClient(new Client(addresse, "80"))
 {}
 
-HttpClient::HttpClient(string addresse, string port):
-    Client(addresse, port),
+
+HttpClient::HttpClient(BasicClient *client):
+    _client(client),
     _chunked(false),
     _status(-1),
     _content_length(-1),
@@ -74,6 +77,13 @@ HttpClient::HttpClient(string addresse, string port):
     _location(""),
     _encoding(""),
     _queries()
+{}
+
+HttpClient::HttpClient(string addresse, string port):
+    HttpClient(new Client(addresse, port))
+{}
+
+HttpClient::~HttpClient()
 {}
 
 
@@ -190,21 +200,37 @@ void HttpClient::setProtocole(const string &protocole)
 
 
 /* ====================  Methods       ==================== */
+void HttpClient::connect()
+{
+    getTCPClient()->connect();
+}
+
+void HttpClient::close()
+{
+    getTCPClient()->close();
+}
+
 void HttpClient::get()
 {
-    string get =    "GET " + _path + _filename + " HTTP/1.1\r\n";
-    if(getPort() == "80")
+    get(_path + _filename);
+}
+
+void HttpClient::get(const string &file)
+{
+    string get =    "GET " + file + " HTTP/1.1\r\n";
+    if(getTCPClient()->getPort() == "80")
     {
-        get = get + "Host: " + getAddress() + "\r\n";
+        get = get + "Host: " + getTCPClient()->getAddress() + "\r\n";
     }
     else
     {
-        get += get + "Host: " + getAddress() + ":" + getPort() + "\r\n";
+        get = get + "Host: " + getTCPClient()->getAddress() + ":" + getTCPClient()->getPort() + "\r\n";
     }
-    get = get + "Accept: */*\r\n" +
-    "Connection: close\r\n\r\n";
-    Log::i("get = " + get);
-    write(get);
+    get = get + "Accept: */*\r\n";
+    get = get + "Accept-Encoding: *\r\n";
+    get = get + "Connection: close\r\n\r\n";
+    Log::i(get);
+    getTCPClient()->write(get);
 }
 
 string HttpClient::getServerFromURL(string url)
@@ -245,13 +271,7 @@ vector<string> HttpClient::parseURL(string url, bool strict)
     }
     else
     {
-        throw ExInvalidURL
-            (
-                 "L'url \"" + url + "\" est invalide.",
-                 __FILE__,
-                 __LINE__,
-                 __FUNCTION__
-            );
+        throw GenEx(ExInvalidURL, "L'url \"" + url + "\" est invalide.");
     }
 
 }
@@ -259,31 +279,36 @@ vector<string> HttpClient::parseURL(string url, bool strict)
 void HttpClient::url(string url, bool strict)
 {
     vector<string> data = parseURL(url, strict);
+
+    string protocole(data[0]);
+    string server(data[1]);
+
     setProtocole(data[0]);
-    setAddress(data[1]);
-    setPort(data[2]);
+    getTCPClient()->setAddress(data[1]);
+    getTCPClient()->setPort(data[2]);
     setPath(data[3]);
     parsePath();
     parseQuery(data[4]);
-    if(getPort() == "")
+
+    if(getProtocole() != "http" && getProtocole() != "https")
     {
-        setPort("80");
+        throw GenEx(ExInvalidProtocole, _protocole);
     }
+
+
     if(getProtocole() == "")
     {
         setProtocole("http");
     }
-
-    if(getProtocole() != "http")
+    if(getProtocole() == "https")
     {
-        throw ExInvalidProtocole
-            (
-             _protocole,
-             __FILE__,
-             __LINE__,
-             __FUNCTION__
-            );
+        _client = new SSLClient(server, protocole);
     }
+    if(getTCPClient()->getPort() == "")
+    {
+        getTCPClient()->setPort("80");
+    }
+
 }
 
 void HttpClient::parsePath()
@@ -321,8 +346,8 @@ void HttpClient::parseQuery(const string &queries)
 
 void HttpClient::parseHeader()
 {
-    readUntil("\r\n");
-    istream is(&getMessage());
+    getTCPClient()->readUntil("\r\n");
+    istream is(&getTCPClient()->getMessage());
     string line;
     is >> _http_version;
     is >> _status;
@@ -336,7 +361,7 @@ void HttpClient::parseHeader()
 
     while(1)
     {
-        istream in(&getMessage());
+        istream in(&getTCPClient()->getMessage());
         while(tools::getline(in, line))
         {
             if(line == "\r")
@@ -386,7 +411,7 @@ void HttpClient::parseHeader()
             }
 
             str = "TRANSFER-ENCODING: ";
-            if(tools::toUpper(line).find(str) != string::npos && tools::toUpper(line).find("chunked") != string::npos)
+            if(tools::toUpper(line).find(str) != string::npos && tools::toUpper(line).find("CHUNKED") != string::npos)
             {
                 _chunked = true;
                 _header = _header + line + "\n";
@@ -402,9 +427,9 @@ void HttpClient::parseHeader()
 
             _unparsed_header = _unparsed_header + line + "\n";
         }
-        if(!isSocketEndReached())
+        if(!getTCPClient()->isSocketEndReached())
         {
-            readUntil("\r\n");
+            getTCPClient()->readUntil("\r\n");
         }
         else
         {
@@ -424,49 +449,49 @@ void HttpClient::parseChunkedData()
     string line;
 
     int length;
-    readUntil("\r\n");
-    istream in_first(&getMessage());
+    getTCPClient()->readUntil("\r\n");
+    istream in_first(&getTCPClient()->getMessage());
     if(tools::getline(in_first, line))
     {
         length = hexToDec(line);
-        setSizeToRead(length);
-        readSome();
-        if(getWriteInOstream())
+        getTCPClient()->setSizeToRead(length);
+        getTCPClient()->readSome();
+        if(getTCPClient()->getWriteInOstream())
         {
-            getOstream() << *this;
+            getTCPClient()->getOstream() << *getTCPClient();
             return;
         }
         else
         {
-            _data = _data + getString(length);
+            _data = _data + getTCPClient()->getString(length);
         }
     }
 
     do
     {
         length = 0;
-        readUntil("\r\n");
-        istream in1(&getMessage());
+        getTCPClient()->readUntil("\r\n");
+        istream in1(&getTCPClient()->getMessage());
         if(tools::getline(in1, line) && line == "\r")
         {
-            readUntil("\r\n");
-            istream in2(&getMessage());
+            getTCPClient()->readUntil("\r\n");
+            istream in2(&getTCPClient()->getMessage());
             tools::getline(in2, line);
         }
         length = hexToDec(line);
 
         if(length != 0)
         {
-            setSizeToRead(length);
-            readSome();
-            if(getWriteInOstream())
+            getTCPClient()->setSizeToRead(length);
+            getTCPClient()->readSome();
+            if(getTCPClient()->getWriteInOstream())
             {
-                getOstream() << *this;
+                getTCPClient()->getOstream() << *getTCPClient();
                 return;
             }
             else
             {
-                _data = _data + getString(length);
+                _data = _data + getTCPClient()->getString(length);
             }
         }
     }while(length != 0);
@@ -487,18 +512,86 @@ void HttpClient::recuperateData()
     }
     else
     {
-        setSizeToRead(_content_length);
+        getTCPClient()->setSizeToRead(_content_length);
 
-        if(getWriteInOstream())
+        if(getTCPClient()->getWriteInOstream())
         {
-            getOstream() << *this;
+            getTCPClient()->getOstream() << *getTCPClient();
             return;
         }
-        readSome();
-        _data = _data + getString();
+        getTCPClient()->readSome();
+        _data = _data + getTCPClient()->getString();
     }
 }
 
+void HttpClient::printInfos()
+{
+    ostringstream oss;
+    oss << "----------- Infos recuperees dans l'en-tete ------------ " << endl;
+    if(isChunked())
+    {
+        oss << "chunked = true" << endl;
+    }
+    else
+    {
+        oss << "chunked = false" << endl;
+    }
+    oss << "statut = " << getStatus() << endl;
+    oss << "message du statut = " << getStatusMessage() << endl;
+    oss << "Taille des donnees = " << getContentLength() << endl;
+    oss << "Type des donnees = " << getContentType() << endl;
+    oss << "Version http = " << getHttpVersion() << endl;
+    oss << "Unite donnees = " << getAcceptRanges() << endl;
+    oss << "Location = " << getLocation() << endl;
+    oss << "Encoding = " << getEncoding() << endl;
+    if(getUnparsedHeader() != "")
+    {
+        oss << "----------------- Le reste de l'en-tete ---------------- ";
+        oss << endl << getUnparsedHeader() << endl;
+    }
+    oss << "-------------------------------------------------------- " << endl;
+    Log::i(oss.str());
+}
+
+BasicClient *HttpClient::getTCPClient()
+{
+    return _client;
+}
 /* -----************************  end of class  ************************----- \\
-          HttpClient
+        HttpClient
 // -----****************************************************************----- */
+
+
+
+/* ////////////////////////////////////|\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\ \\
+// |....oooooooOOOO000000000000000000000000000000000000000000OOOOooooooo....| \\
+// |....oooooooOOOO00000********°°°°°^^^^^°°°°°********000000OOOOooooooo....| \\
+// |....---------------|             class             |----------------....| \\
+// |....°°°°°°°°°°°°°°°                                 °°°°°°°°°°°°°°°°....| \\
+    Class: HttpsClient
+    Description: Cette classe, qui hérite de Client, permet de définir une
+    connexin TCP avec un serveur HTTPS.
+// |....----------------------------------------------------------------....| \\
+// |....°°°°°°°OOOOOOOOO00000000000000000000000000000000OOOOOOOOO°°°°°°°....| \\
+// \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\|///////////////////////////////////// */
+
+/* ====================  Constructors  ==================== */
+HttpsClient::HttpsClient():
+    HttpsClient(new SSLClient("", "80"))
+{}
+
+HttpsClient::HttpsClient(string addresse):
+    HttpsClient(new SSLClient(addresse, "80"))
+{}
+
+HttpsClient::HttpsClient(BasicClient *client):
+    HttpClient(client)
+{}
+
+HttpsClient::HttpsClient(string addresse, string port):
+    HttpsClient(new SSLClient(addresse, port))
+{}
+
+HttpsClient::~HttpsClient()
+{}
+

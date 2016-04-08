@@ -25,7 +25,8 @@
 #include "ExHTMLTag.hpp"
 
 
-using namespace std::regex_constants;
+using namespace std;
+using namespace regex_constants;
 
 
 /* ////////////////////////////////////|\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\ \\
@@ -68,39 +69,27 @@ string HTMLTag::parse(const string &str)
     regex e("^.*<(\\w*)\\s");
     if(!regex_search(str, m, e))
     {
-        throw ExHTMLTag
-            (
-                 "\"" + str + "\" ne contient pas de balise.",
-                 __FILE__,
-                 __LINE__,
-                 __FUNCTION__
-            );
+        throw GenEx(ExHTMLTag, "\"" + str + "\" ne contient pas de balise.");
     }
     string name_str(m.str(1));
-    _name = name_str;
+    _name = tools::toUpper(name_str);
     return parseTag(str);
 }
 
 string HTMLTag::parse(const string &str, const string &tagname)
 {
-    _name = tagname;
+    _name = tools::toUpper(tagname);
     return parseTag(str);
 }
 
 string HTMLTag::parseTag(const string &str)
 {
-    regex e("<" + _name + "\\s+(([^>])*)\\s*/?>");
+    regex e("<" + _name + "\\s+(([^>])*)\\s*/?>", regex_constants::icase);
     smatch m;
 
     if(!regex_search(str, m, e))
     {
-        throw ExHTMLTag
-            (
-                 "\"" + str + "\" n'est pas bien pour le balise \"" + _name + "\"",
-                 __FILE__,
-                 __LINE__,
-                 __FUNCTION__
-            );
+        throw GenEx(ExHTMLTag, "\"" + str + " n'est pas bien pour le balise \"" + _name + "\"");
     }
 
     string attrs(m.str(1));
@@ -122,7 +111,7 @@ void HTMLTag::parseAttrs(const string &str)
     while(regex_search(s, m, e1))
     {
         string name_str(m.str(1)), val_str(m.str(2));
-        _attrs[name_str] = val_str;
+        _attrs[tools::toUpper(name_str)] = val_str;
         s = m.suffix().str();
     }
 }
