@@ -27,6 +27,8 @@ using namespace std;
 /* ====================  Constructors  ==================== */
 HttpDownloaderQueue::HttpDownloaderQueue():
     _stop(false),
+    _d_index(0),
+    _p_index(0),
     _m_put_url(),
     _m_get_url(),
     _m_put_file(),
@@ -42,9 +44,29 @@ HttpDownloaderQueue::HttpDownloaderQueue():
 
 
 /* ====================  Accessors     ==================== */
+unsigned int HttpDownloaderQueue::getDIndex()
+{
+    return _d_index;
+}
+
+unsigned int HttpDownloaderQueue::getPIndex()
+{
+    return _p_index;
+}
+
 unsigned int HttpDownloaderQueue::getDepth()
 {
     return _th_depth[this_thread::get_id()];
+}
+
+vector<string> &HttpDownloaderQueue::getURLs()
+{
+    return _urls;
+}
+
+vector<string> &HttpDownloaderQueue::getFiles()
+{
+    return _files;
 }
 
 
@@ -81,7 +103,7 @@ string HttpDownloaderQueue::getURL()
 {
     _th_d_end[this_thread::get_id()] = true;
     unique_lock<mutex> lock(_m_get_url);
-    while(_urls.empty() && !_stop)
+    while(_urls.size() == _d_index && !_stop)
     {
         _cv_url.wait(lock);
     }
@@ -89,14 +111,13 @@ string HttpDownloaderQueue::getURL()
     if(!_stop)
     {
         _th_d_end[this_thread::get_id()] = false;
-        url = _urls.back();
-        _urls.pop_back();
+        url = _urls[_d_index];
         if(_listener)
         {
-            _listener->onGetURL(_d_depths.back());
+            _listener->onGetURL(_d_depths[_d_index]);
         }
-        _th_depth[this_thread::get_id()] = _d_depths.back();
-        _d_depths.pop_back();
+        _th_depth[this_thread::get_id()] = _d_depths[_d_index];
+        _d_index++;
     }
     return url;
 }
@@ -105,7 +126,7 @@ string HttpDownloaderQueue::getFile()
 {
     _th_p_end[this_thread::get_id()] = true;
     unique_lock<mutex> lock(_m_get_file);
-    while(_files.empty() && !_stop)
+    while(_files.size() == _p_index && !_stop)
     {
         _cv_file.wait(lock);
     }
@@ -113,14 +134,13 @@ string HttpDownloaderQueue::getFile()
     if(!_stop)
     {
         _th_p_end[this_thread::get_id()] = false;
-        file = _files.back();
-        _files.pop_back();
+        file = _files[_p_index];
         if(_listener)
         {
-            _listener->onGetFile(_p_depths.back());
+            _listener->onGetFile(_p_depths[_p_index]);
         }
-        _th_depth[this_thread::get_id()] = _p_depths.back();
-        _p_depths.pop_back();
+        _th_depth[this_thread::get_id()] = _p_depths[_p_index];
+        _p_index++;
     }
     return file;
 }
@@ -155,14 +175,9 @@ void HttpDownloaderQueue::stop()
     _stop = true;
 }
 
-bool HttpDownloaderQueue::empty()
-{
-    return _urls.empty() && _files.empty();
-}
-
 bool HttpDownloaderQueue::isDEnd()
 {
-    if(!_urls.empty())
+    if(_urls.size() != _d_index)
     {
         return false;
     }
@@ -184,7 +199,7 @@ bool HttpDownloaderQueue::isDEnd()
 
 bool HttpDownloaderQueue::isPEnd()
 {
-    if(!_files.empty())
+    if(_files.size() != _p_index)
     {
         return false;
     }
@@ -228,8 +243,8 @@ void HttpDownloaderQueue::notifyEnd()
 {
     stop();
     _th_d_end[this_thread::get_id()] = true;
-    _cv_url.notify_one();
-    _cv_file.notify_one();
+    _cv_url.notify_all();
+    _cv_file.notify_all();
 }
 
 unsigned int HttpDownloaderQueue::getNbRunningDThreads()

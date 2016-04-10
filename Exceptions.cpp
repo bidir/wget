@@ -27,40 +27,146 @@ using namespace std;
 // |....oooooooOOOO000000000000000000000000000000000000000000OOOOooooooo....| \\
 // |....oooooooOOOO00000********°°°°°^^^^^°°°°°********000000OOOOooooooo....| \\
 // |....---------------|             class             |----------------....| \\
-    Class: Exception
+    Class: ExceptionInfo
 // |....----------------------------------------------------------------....| \\
 // |....°°°°°°°OOOOOOOOO00000000000000000000000000000000OOOOOOOOO°°°°°°°....| \\
 // \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\|///////////////////////////////////// */
 
+/* ====================  Constructors  ==================== */
+ExceptionInfo::ExceptionInfo
+    (
+         const ExceptionInfo &info
+    ) throw():
+    ExceptionInfo(info.getFile(), info.getFunction(), info.getLine())
+{}
+ExceptionInfo::ExceptionInfo
+    (
+         const string &file,
+         const string &function,
+         int line
+    ) throw():
+    _line(line),
+    _function(function),
+    _file(file)
+{}
+
+ExceptionInfo::ExceptionInfo
+    (
+        const char *file,
+        const char *function,
+        int line
+        ) throw():
+    _line(line),
+    _function(function),
+    _file(file)
+{}
+
+ExceptionInfo::~ExceptionInfo() throw()
+{}
+
+
+
+/* ====================  Accessors     ==================== */
+int ExceptionInfo::getLine()
+{
+    return _line;
+}
+
+const int &ExceptionInfo::getLine() const
+{
+    return _line;
+}
+
+string ExceptionInfo::getFile()
+{
+    return _file;
+}
+
+const string ExceptionInfo::getFile() const
+{
+    return _file;
+}
+
+string ExceptionInfo::getFunction()
+{
+    return _function;
+}
+
+const string ExceptionInfo::getFunction() const
+{
+    return _function;
+}
+
+
+/* ====================  Mutators      ==================== */
+void ExceptionInfo::setLine(int line)
+{
+    _line = line;
+}
+
+void ExceptionInfo::setFile(string file)
+{
+    _file = file;
+}
+
+void ExceptionInfo::setFunction(string function)
+{
+    _function = function;
+}
+/* -----************************  end of class  ************************----- \\
+       ExceptionInfo
+// -----****************************************************************----- */
+
+
+
+/* ////////////////////////////////////|\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\ \\
+// |....oooooooOOOO000000000000000000000000000000000000000000OOOOooooooo....| \\
+// |....oooooooOOOO00000********°°°°°^^^^^°°°°°********000000OOOOooooooo....| \\
+// |....---------------|             class             |----------------....| \\
+    Class: Exception
+// |....----------------------------------------------------------------....| \\
+// |....°°°°°°°OOOOOOOOO00000000000000000000000000000000OOOOOOOOO°°°°°°°....| \\
+// \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\|///////////////////////////////////// */
 
 /* ====================  Constructors  ==================== */
 Exception::Exception
     (
          int code,
          const string &msg,
-         const string &file,
-         int line,
-         const string &function
+         const ExceptionInfo &info
     ) throw():
     _code(code),
-    _line(line),
-    _file(file),
-    _function(function),
-    _msg(msg)
+    _msg(msg),
+    _info(info),
+    _traces()
 {}
+
+Exception::Exception
+    (
+        int code,
+        const string &msg,
+        const string &file,
+        const string &function,
+        int line
+    ) throw():
+    _code(code),
+    _msg(msg),
+    _info(file, function, line),
+    _traces()
+{}
+
 Exception::Exception
     (
         int code,
         const char *msg,
         const char *file,
-        int line,
-        const char *function
+        const char *function,
+        int line
         ) throw():
     _code(code),
-    _line(line),
-    _file(file),
-    _function(function),
-    _msg(msg)
+    _msg(msg),
+    _info(file, function, line),
+    _traces()
 {}
 
 Exception::~Exception() throw()
@@ -73,52 +179,58 @@ int Exception::getCode() const
     return _code;
 }
 
-int Exception::getLine() const
+ExceptionInfo &Exception::getTrace(unsigned int i)
 {
-    return _line;
+    return _traces[i];
 }
 
-string Exception::getFile() const
+const ExceptionInfo &Exception::getTrace(unsigned int i) const
 {
-    return _file;
+    return _traces[i];
 }
 
-string Exception::getFunction() const
+vector<ExceptionInfo> &Exception::getTraces()
 {
-    return _function;
+    return _traces;
 }
 
-string Exception::getMessage() const
+const vector<ExceptionInfo> &Exception::getTraces() const
+{
+    return _traces;
+}
+
+const string &Exception::getMessage() const
 {
     return _msg;
 }
 
+ExceptionInfo &Exception::getInfo()
+{
+    return _info;
+}
+
+const ExceptionInfo &Exception::getInfo() const
+{
+    return _info;
+}
+
+
 
 /* ====================  Mutators      ==================== */
-void Exception::setLine(int line)
-{
-    _line = line;
-}
-
-void Exception::setFile(string file)
-{
-    _file = file;
-}
-
-void Exception::setFunction(string function)
-{
-    _function = function;
-}
 
 
 /* ====================  Methods       ==================== */
 const char* Exception::what() const throw()
 {
     ostringstream oss;
-    oss << "[" << _file << ":" << _line << "|" << _function << "] " << _msg;
+    oss << "[" << _info.getFile() << ":" << _info.getFunction() << "|" << _info.getLine() << "] " << _msg;
     return oss.str().c_str();
 }
 
+void Exception::addInfo(const ExceptionInfo &info)
+{
+    _traces.push_back(info);
+}
 /* -----************************  end of class  ************************----- \\
        Exception
 // -----****************************************************************----- */

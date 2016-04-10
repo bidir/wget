@@ -68,46 +68,55 @@ Client::~Client()
 /* ====================  Methods       ==================== */
 void Client::connect()
 {
-    _socket = new Boost::Socket(_service);
-    Boost::Resolver resolver(_service);
-    Boost::Query query(getAddress(), getPort());
-
-    Boost::Error error;
-
-    Boost::Iterator endpoint_iterator = resolver.resolve(query);
-    Boost::Iterator end;
-
-    while(endpoint_iterator != end)
+    try
     {
-        try
+        _socket = new Boost::Socket(_service);
+        Boost::Resolver resolver(_service);
+        string port = getPort();
+        if(port == "")
+        {
+            port = getProtocole();
+        }
+        Boost::Query query(getAddress(), port);
+
+        Boost::Error error;
+
+        Boost::Iterator endpoint_iterator = resolver.resolve(query);
+        Boost::Iterator end;
+
+        ostringstream oss;
+        while(endpoint_iterator != end)
         {
             Boost::Endpoint endpoint = *endpoint_iterator;
+            oss << "Tentative de connexion a " << endpoint << " ..." << endl;;
+            LogI(oss.str());
+            oss.str("");
             _socket->connect(endpoint, error);
             if(!error)
             {
-                ostringstream oss;
-                oss << "Tentative de connexion a " << endpoint << " reussie." << endl;
-                setPort(tools::toString(endpoint.port()));
-                Log::i(oss.str());
+                oss << "Connexion a " << endpoint << " reussie" << endl;
+                //setPort(tools::toString(endpoint.port()));
+                LogI(oss.str());
+                oss.str("");
                 break;
             }
 
-            ostringstream oss2;
-            oss2 << "Tentative de connexion a " << endpoint << " echouee." << endl;
-            Log::i(oss2.str());
+            oss << "Connexion a " << endpoint << " echouee" << endl;
+            LogW(oss.str());
+            oss.str("");
             _socket->close();
             endpoint_iterator++;
         }
-        catch(const exception &e)
+
+        if(endpoint_iterator == end)
         {
-            throw GenEx(ExInvalidURL, e.what());
+            Boost::SystemError se(error);
+            throw GenEx(ExInvalidURL, se.what());
         }
     }
-
-    if(endpoint_iterator == end)
+    catch(const exception &e)
     {
-        Boost::SystemError se(error);
-        throw GenEx(ExInvalidURL, se.what());
+        throw GenEx(ExInvalidURL, e.what());
     }
 }
 

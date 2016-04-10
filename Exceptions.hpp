@@ -7,6 +7,7 @@
  *
  * Description: Sont définis dans ce fichier:
  *  ->Les classes:
+ *      |-> ExceptionInfo
  *      |-> Exception
  *      |-> ExOpeningFile
  *      |-> ExCreatingDir
@@ -25,7 +26,9 @@
  * =============================================================================
  */
 
-#define GenEx(x, ...) x(__VA_ARGS__, __FILE__, __LINE__, __FUNCTION__)
+#define EXINFO ExceptionInfo(__FILE__, __FUNCTION__, __LINE__)
+#define GenEx(x, ...) x(__VA_ARGS__, EXINFO)
+#define AddTrace(x) x.addInfo(EXINFO)
 
 
 typedef enum
@@ -47,8 +50,70 @@ typedef enum
 
 
 #include <iostream>
+#include <vector>
 #include <exception>
 #include <string>
+
+
+
+/* ////////////////////////////////////|\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\ \\
+// |....oooooooOOOO000000000000000000000000000000000000000000OOOOooooooo....| \\
+// |....oooooooOOOO00000********°°°°°^^^^^°°°°°********000000OOOOooooooo....| \\
+// |....---------------|             class             |----------------....| \\
+    Class: ExceptionInfo
+    Description:  
+// |....----------------------------------------------------------------....| \\
+// |....°°°°°°°OOOOOOOOO00000000000000000000000000000000OOOOOOOOO°°°°°°°....| \\
+// \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\|///////////////////////////////////// */
+class ExceptionInfo
+{
+    private:
+        /* ====================  Data members  ==================== */
+        int _line;
+        std::string _function;
+        std::string _file;
+
+
+    public:
+
+        /* ====================  Constructors  ==================== */
+        ExceptionInfo(const ExceptionInfo &info) throw();
+        ExceptionInfo(const std::string &file, const std::string &function, int line) throw();
+        ExceptionInfo(const char *file, const char *function, int line) throw();
+        virtual ~ExceptionInfo() throw();
+
+
+        /* ====================  Accessors     ==================== */
+        int getLine();
+        const int &getLine() const;
+        std::string getFile();
+        const std::string getFile() const;
+        std::string getFunction();
+        const std::string getFunction() const;
+
+
+        /* ====================  Mutators      ==================== */
+        void setLine(int line);
+        void setFile(std::string file);
+        void setFunction(std::string function);
+
+
+        /* ====================  Operators     ==================== */
+
+
+        /* ====================  Methods       ==================== */
+
+
+
+    protected:
+
+        /* ====================  Methods       ==================== */
+
+};
+/* -----************************  end of class  ************************----- \\
+       ExceptionInfo
+// -----****************************************************************----- */
+
 
 
 /* ////////////////////////////////////|\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\ \\
@@ -65,40 +130,39 @@ class Exception : public std::exception
     private:
         /* ====================  Data members  ==================== */
         int _code;
-        int _line;
-        std::string _file;
-        std::string _function;
         std::string _msg;
+        ExceptionInfo _info;
+
+        std::vector<ExceptionInfo> _traces;
 
 
     public:
         /* ====================  Constructors  ==================== */
-        Exception(int code, const std::string &msg, const std::string &file, int line, const std::string &function) throw();
-        Exception(int code, const char *msg, const char *file, int line, const char *function) throw();
+        Exception(int code, const std::string &msg, const ExceptionInfo &info) throw();
+        Exception(int code, const std::string &msg, const std::string &file, const std::string &function, int line) throw();
+        Exception(int code, const char *msg, const char *file, const char *function, int line) throw();
         virtual ~Exception() throw();
 
 
         /* ====================  Accessors     ==================== */
         int getCode() const;
-        int getLine() const;
-        std::string getFile() const;
-        std::string getFunction() const;
-        std::string getMessage() const;
+        ExceptionInfo &getTrace(unsigned int i);
+        const ExceptionInfo &getTrace(unsigned int i) const;
+        std::vector<ExceptionInfo> &getTraces();
+        const std::vector<ExceptionInfo> &getTraces() const;
+        const std::string &getMessage() const;
+        ExceptionInfo &getInfo();
+        const ExceptionInfo &getInfo() const;
 
 
         /* ====================  Mutators      ==================== */
-        void setLine(int line);
-        void setFile(std::string file);
-        void setFunction(std::string function);
-
-
 
 
         /* ====================  Operators     ==================== */
 
 
-
         /* ====================  Methods       ==================== */
+        void addInfo(const ExceptionInfo &info);
         virtual const char* what() const throw();
         static inline void init(Exception &ex);
 
@@ -129,11 +193,19 @@ class ExOpeningFile : public Exception
         /* ====================  Constructors  ==================== */
         ExOpeningFile
             (
-                 const std::string &msg,
-                 const std::string &file,
-                 int line,
-                 const std::string &function
-            ) throw():Exception(ERR::OPEN_FILE, msg, file, line, function){};
+                const std::string &msg,
+                const std::string &file,
+                const std::string &function,
+                int line
+            ) throw():Exception(ERR::OPEN_FILE, msg, file, function, line)
+        {};
+
+        ExOpeningFile
+            (
+                const std::string &msg,
+                const ExceptionInfo &info
+            ) throw():Exception(ERR::OPEN_FILE, msg, info)
+        {};
 };
 /* -----************************  end of class  ************************----- \\
        ExOpeningFile
@@ -156,11 +228,19 @@ class ExCreatingDir : public Exception
         /* ====================  Constructors  ==================== */
         ExCreatingDir
             (
-                 const std::string &msg,
-                 const std::string &file,
-                 int line,
-                 const std::string &function
-            ) throw():Exception(ERR::CREATE_DIR, msg, file, line, function){};
+                const std::string &msg,
+                const std::string &file,
+                const std::string &function,
+                int line
+            ) throw():Exception(ERR::CREATE_DIR, msg, file, function, line)
+        {};
+
+        ExCreatingDir
+            (
+                const std::string &msg,
+                const ExceptionInfo &info
+            ) throw():Exception(ERR::CREATE_DIR, msg, info)
+        {};
 };
 /* -----************************  end of class  ************************----- \\
        ExCreatingDir

@@ -19,10 +19,10 @@
  * =============================================================================
  */
 
-#define LogE(x) Log::e(Exception(ERR::NOT_OK, x, __FILE__, __LINE__, __FUNCTION__))
-#define LogW(x) Log::w(Exception(ERR::WAR   , x, __FILE__, __LINE__, __FUNCTION__))
-#define LogI(x) Log::i(Exception(ERR::INF   , x, __FILE__, __LINE__, __FUNCTION__))
-#define LogD(x) Log::d(Exception(ERR::OK    , x, __FILE__, __LINE__, __FUNCTION__))
+#define LogE(x) Log::e(Exception(ERR::NOT_OK, x, __FILE__, __FUNCTION__, __LINE__))
+#define LogW(x) Log::w(Exception(ERR::WAR   , x, __FILE__, __FUNCTION__, __LINE__))
+#define LogI(x) Log::i(Exception(ERR::INF   , x, __FILE__, __FUNCTION__, __LINE__))
+#define LogD(x) Log::d(Exception(ERR::OK    , x, __FILE__, __FUNCTION__, __LINE__))
 
 #include <iostream>
 #include <vector>

@@ -3,7 +3,7 @@ BIN=wget
 CXXFLAGS=-std=c++11 -O0 -g -W -Wall -fdiagnostics-color
 LDFLAGS=
 
-LIBS=-lboost_system -lpthread -lboost_filesystem -lssl -lcrypto
+LIBS=-lboost_system -lpthread -lboost_filesystem -lssl -lcrypto -lz -lboost_iostreams
 COMP=g++
 CXX=$(COMP) $(CXXFLAGS)
 LD=$(COMP)

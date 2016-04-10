@@ -24,6 +24,9 @@
 
 #include <boost/filesystem.hpp>
 #include <boost/lexical_cast.hpp>
+#include <boost/iostreams/filtering_stream.hpp>
+#include <boost/iostreams/filter/gzip.hpp>
+#include <boost/lexical_cast.hpp>
 
 #include "tools.hpp"
 #include "Log.hpp"
@@ -52,7 +55,6 @@ namespace tools
         }
         catch(bad_lexical_cast &e)
         {
-            //throw getException(e.what(), __FILE__, __LINE__);
             throw GenEx(Exception, 0, e.what());
         }
     }
@@ -172,16 +174,6 @@ namespace tools
         return regex_replace(str, e, "");
     }
 
-    Exception getException(const string &msg, const char *file, int line)
-    {
-        return getException(msg, file, line, "");
-    }
-
-    Exception getException(const string &msg, const char *file, int line, const char *function)
-    {
-        return Exception(0, msg, string(file), line, string(function));
-    }
-
     void createDir(const char *path)
     {
         Path boost_path(path);
@@ -211,5 +203,18 @@ namespace tools
     bool isDirExists(const string &path)
     {
         return isDirExists(path.c_str());
+    }
+
+    vector<char> ungzip(const char *compr, unsigned int size)
+    {
+        std::vector<char> compressed = std::vector<char>(compr, compr + size);
+        std::vector<char> decompressed = std::vector<char>();
+
+        boost::iostreams::filtering_ostream os;
+        os.push(boost::iostreams::gzip_decompressor());
+        os.push(boost::iostreams::back_inserter(decompressed));
+        boost::iostreams::write(os, &compressed[0], compressed.size());
+
+        return decompressed;
     }
 }

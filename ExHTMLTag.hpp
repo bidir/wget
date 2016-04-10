@@ -40,9 +40,17 @@ class ExHTMLTag : public Exception
             (
                  const std::string &msg,
                  const std::string &file,
-                 int line,
-                 const std::string &function
-            ) throw():Exception(ERR::HTTP_PARSER, msg, file, line, function){};
+                 const std::string &function,
+                 int line
+            ) throw():Exception(ERR::HTTP_PARSER, msg, file, function, line)
+        {};
+
+        ExHTMLTag
+            (
+                 const std::string &msg,
+                 const ExceptionInfo &info
+            ) throw():Exception(ERR::HTTP_PARSER, msg, info)
+        {};
 };
 /* -----************************  end of class  ************************----- \\
            ExHTMLTag

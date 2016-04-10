@@ -43,6 +43,7 @@ class HttpDownloader
         /* ====================  Data members  ==================== */
         bool _only_page;
         bool _print;
+        unsigned int _nb_pages;
         unsigned int _print_refresh;
         unsigned int _depth;
         unsigned int _nb_d_th;
@@ -72,6 +73,7 @@ class HttpDownloader
         /* ====================  Accessors     ==================== */
         bool getOnlyPage();
         bool getPrint();
+        unsigned int getNbDownloadedPages();
         unsigned int getPrintRefresh();
         unsigned int getDepth();
         unsigned int getNbDownloadThreads();

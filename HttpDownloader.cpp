@@ -54,6 +54,7 @@ HttpDownloader::HttpDownloader(int depth):
 HttpDownloader::HttpDownloader(string path, int depth):
     _only_page(false),
     _print(false),
+    _nb_pages(0),
     _print_refresh(100),
     _depth(depth),
     _nb_d_th(4),
@@ -84,6 +85,11 @@ bool HttpDownloader::getOnlyPage()
 bool HttpDownloader::getPrint()
 {
     return _print;
+}
+
+unsigned int HttpDownloader::getNbDownloadedPages()
+{
+    return _nb_pages;
 }
 
 unsigned int HttpDownloader::getPrintRefresh()
@@ -161,8 +167,9 @@ void HttpDownloader::download(string url)
     {
         _client.url(url);
     }
-    catch(const Exception &ex)
+    catch(Exception &ex)
     {
+        AddTrace(ex);
         Log::w(ex);
         return;
     }
@@ -173,18 +180,26 @@ void HttpDownloader::download(string url)
         _nb_p_th = 0;
     }
 
-    for(unsigned int i = 0; i < _nb_p_th; i++)
+    try
     {
-        thread th(HttpDownloader::sParse, this);
-        _p_threads.push_back(move(th));
-    }
+        for(unsigned int i = 0; i < _nb_p_th; i++)
+        {
+            thread th(HttpDownloader::sParse, this);
+            _p_threads.push_back(move(th));
+        }
 
-    for(unsigned int i = 0; i < _nb_d_th; i++)
-    {
-        thread th(HttpDownloader::sGet, this);
-        _d_threads.push_back(move(th));
+        for(unsigned int i = 0; i < _nb_d_th; i++)
+        {
+            thread th(HttpDownloader::sGet, this);
+            _d_threads.push_back(move(th));
+        }
+        _queue.addURL(url);
     }
-    _queue.addURL(url);
+    catch(Exception &e)
+    {
+        AddTrace(e);
+        throw e;
+    }
 }
 
 void HttpDownloader::printInfos()
@@ -226,10 +241,15 @@ void HttpDownloader::sPrintInfos(HttpDownloader *downloader)
     do
     {
         cout.flush();
-        cout << "\rT: " << downloader->getQueue().getNbRunningDThreads() 
+        cout << "\rT: " << downloader->getQueue().getDIndex() 
+             << "/" << downloader->getQueue().getURLs().size()
+             << "   A: " << downloader->getQueue().getPIndex()
+             << "/" << downloader->getQueue().getFiles().size()
+             << "   TH-T: " << downloader->getQueue().getNbRunningDThreads() 
              << "/" << downloader->getNbDownloadThreads()
-             << "\tA: " << downloader->getQueue().getNbRunningPThreads()
+             << "   TH-A: " << downloader->getQueue().getNbRunningPThreads()
              << "/" << downloader->getNbParseThreads();
+             //<< "   P: " << downloader->getNbDownloadedPages();
         this_thread::sleep_for(milliseconds(downloader->getPrintRefresh()));
     }while(downloader->getPrint() && !downloader->getQueue().isStopped());
     downloader->unlockPrint();
@@ -239,7 +259,17 @@ void HttpDownloader::sGet(HttpDownloader *httpDownloader)
 {
     do
     {
-        httpDownloader->get();
+        try
+        {
+            httpDownloader->get();
+        }
+        catch(Exception &e)
+        {
+            AddTrace(e);
+            httpDownloader->getQueue().notifyEnd();
+            HttpDownloader::sPrintInfos(httpDownloader);
+            throw(e);
+        }
     }while(!httpDownloader->getQueue().isEnd() && !httpDownloader->getQueue().isStopped());
     httpDownloader->getQueue().notifyEnd();
     HttpDownloader::sPrintInfos(httpDownloader);
@@ -249,7 +279,17 @@ void HttpDownloader::sParse(HttpDownloader *httpDownloader)
 {
     do
     {
-        httpDownloader->parse();
+        try
+        {
+            httpDownloader->parse();
+        }
+        catch(Exception &e)
+        {
+            AddTrace(e);
+            httpDownloader->getQueue().notifyEnd();
+            HttpDownloader::sPrintInfos(httpDownloader);
+            throw(e);
+        }
     }while(!httpDownloader->getQueue().isEnd() && ! httpDownloader->getQueue().isStopped());
     httpDownloader->getQueue().notifyEnd();
     HttpDownloader::sPrintInfos(httpDownloader);
@@ -266,7 +306,7 @@ void HttpDownloader::get()
     unsigned int depth = _queue.getDepth();
     try
     {
-        Log::i("Recuperation de la page " + string(url));
+        LogI("Recuperation de la page " + string(url));
         HttpClient client;
         client.url(string(url));
         client.connect();
@@ -281,21 +321,22 @@ void HttpDownloader::get()
               client.getStatus() != 302
           )
         {
-            ExHttpClient ex
-                (
-                     client.getStatus(),
-                     __FILE__,
-                     __LINE__,
-                     __FUNCTION__
-                );
-            Log::w(ex);
-            return;
+            if(_only_page || _nb_pages == 0)
+            {
+                throw GenEx(ExHttpClient, client.getStatus());
+            }
+            else
+            {
+                Log::w(GenEx(ExHttpClient, client.getStatus()));
+                return;
+            }
         }
 
         if(client.getStatus() == 301 || client.getStatus() == 302)
         {
-            Log::i("Redirection vers " + client.getLocation());
-            _queue.addURL(client.getLocation(), depth);
+            LogI("Redirection vers " + client.getLocation());
+            if(url != client.getLocation())
+                _queue.addURL(client.getLocation(), depth);
             return;
         }
         else
@@ -321,24 +362,19 @@ void HttpDownloader::get()
             file.open(filename);
             if(file.fail())
             {
-                Exception ex
-                    (
-                        ERR::OUTPUT_FILE,
-                        "Erreur pendant l'ouverture du fichier " + filename,
-                        __FILE__,
-                        __LINE__,
-                        __FUNCTION__
-                    );
-                Log::w(ex);
+                Log::w(GenEx(
+                        ExOpeningFile, 
+                        "Erreur pendant l'ouverture du fichier " + filename
+                    ));
                 return;
             }
-            Log::i("Ecriture des donnees dans " + filename);
+            LogI("Ecriture des donnees dans " + filename);
             client.getTCPClient()->writeInOstream(true, file);
             client.recuperateData();
 
 
             file.close();
-            Log::i("Fermeture de la connexion au serveur " + string(url));
+            LogI("Fermeture de la connexion au serveur " + _client.getTCPClient()->getAddress());
             client.close(); 
 
             if(tools::toUpper(client.getContentType()) == "TEXT/HTML" && depth <= _depth && !_only_page)
@@ -347,9 +383,10 @@ void HttpDownloader::get()
             }
         }
     }
-    catch(const Exception &e)
+    catch(Exception &e)
     {
-        if(_only_page)
+        AddTrace(e);
+        if(_only_page || _nb_pages == 0)
         {
             throw e;
         }
@@ -361,7 +398,7 @@ void HttpDownloader::get()
     }
     catch(const exception &ex)
     {
-        if(_only_page)
+        if(_only_page || _nb_pages == 0)
         {
             throw ex;
         }
@@ -371,6 +408,7 @@ void HttpDownloader::get()
             return;
         }
     }
+    _nb_pages++;
 }
 
 void HttpDownloader::parse()
@@ -388,13 +426,7 @@ void HttpDownloader::parse()
         in.open(filename);
         if(in.fail())
         {
-            Log::w(tools::getException
-                    (
-                        "Erreur pendant l'ouverture du fichier de sortie",
-                        __FILE__,
-                        __LINE__,
-                        __FUNCTION__
-                    ));
+            LogW("Erreur pendant l'ouverture du fichier de sortie");
             return;
         }
         HTMLTagParser parser(in);
@@ -433,8 +465,6 @@ void HttpDownloader::parse()
                 s_url = createURL(tag.getAttribute("SRC"));
             }
 
-            LogD("s_url = " + s_url);
-            LogD("s = " + HttpClient::getServerFromURL(s_url));
             try
             {
                 if(HttpClient::parseURL(s_url)[1] == _client.getTCPClient()->getAddress())
@@ -442,18 +472,20 @@ void HttpDownloader::parse()
                     _queue.addURL(s_url, depth + 1);
                 }
             }
-            catch(const ExInvalidURL &e)
+            catch(ExInvalidURL &e)
             {
+                AddTrace(e);
                 Log::w(e);
             }
         }
     }
-    catch(const Exception &e)
+    catch(Exception &e)
     {
+        AddTrace(e);
         Log::w(e);
         return;
     }
-    catch(const exception &ex)
+    catch(exception &ex)
     {
         Log::w(ex.what());
         return;
@@ -472,40 +504,37 @@ void HttpDownloader::unlockPrint()
 
 string HttpDownloader::createURL(const string &path)
 {
-    LogD("path = " + path);
     string url("");
     try
     {
         HttpClient clt;
         clt.url(path, true);
         url = path;
-        LogD("url1 = " + url);
     }
-    catch(const ExInvalidURL ex)
+    catch(ExInvalidURL ex)
     {
         if(path.find("/") != 0 || path.find("/") == string::npos)
         {
             url = _client.getProtocole() + "://" +
-                _client.getTCPClient()->getAddress();
+                  _client.getTCPClient()->getAddress();
             if(_client.getTCPClient()->getPort() != "")
             {
                 url = url + ":" + _client.getTCPClient()->getPort();
             }
-            url = url +_client.getPath() + 
-                path;
-        LogD("url2 = " + url);
+            url = url +_client.getPath() + path;
         }
         else
         {
             url = _client.getProtocole() + "://" +
-                _client.getTCPClient()->getAddress() +
-                ":" + _client.getTCPClient()->getPort() +
-                path;
-        LogD("url3 = " + url);
+                  _client.getTCPClient()->getAddress();
+            if(_client.getTCPClient()->getPort() != "")
+            {
+                url = url + ":" + _client.getTCPClient()->getPort();
+            }
+            url = url + path;
         }
     }
 
-    LogD("url = " + url);
     return url;
 }
 

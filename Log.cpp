@@ -109,10 +109,17 @@ void Log::print(const string &label, const Exception &ex)
         ostringstream oss;
         oss << "[" << label
             << "-" << ex.getCode() << "]"
-            << "[" << ex.getFile() << ":" << ex.getLine() << "]"
-            << "["  << ex.getFunction() << "]"
-            << "[" << tools::getCurrentTime() << "]" << endl
-            << ex.getMessage();
+            << "[" << ex.getInfo().getFile() <<":"<< ex.getInfo().getLine() << "]"
+            << "["  << ex.getInfo().getFunction() << "]"
+            << "[" << tools::getCurrentTime() << "]" << endl;
+
+        for(unsigned int i = 0; i < ex.getTraces().size(); i++)
+        {
+            oss << " -> "
+            << ex.getTrace(i).getFile() <<":"<< ex.getTrace(i).getLine()
+            << "["  << ex.getTrace(i).getFunction() << "]" << endl;
+        }
+        oss << ex.getMessage();
         if(label == _d && _d_out != NULL)
         {
             writeD(oss.str());

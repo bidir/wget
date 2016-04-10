@@ -61,9 +61,8 @@ HttpClient::HttpClient(string addresse):
 HttpClient::HttpClient(BasicClient *client):
     _client(client),
     _chunked(false),
-    _status(-1),
+    _status(0),
     _content_length(-1),
-    _protocole(""),
     _path(""),
     _filename(""),
     _content_type(""),
@@ -106,7 +105,7 @@ int HttpClient::getContentLength()
 
 string HttpClient::getProtocole()
 {
-    return _protocole;
+    return _client->getProtocole();
 }
 
 string HttpClient::getPath()
@@ -179,6 +178,11 @@ string HttpClient::getEncoding()
     return _encoding;
 }
 
+string HttpClient::getContentEncoding()
+{
+    return _content_encoding;
+}
+
 
 
 /* ====================  Mutators      ==================== */
@@ -190,11 +194,6 @@ void HttpClient::setPath(const string &path)
 void HttpClient::setFilename(const string &filename)
 {
     _filename = filename;
-}
-
-void HttpClient::setProtocole(const string &protocole)
-{
-    _protocole = protocole;
 }
 
 
@@ -217,19 +216,13 @@ void HttpClient::get()
 
 void HttpClient::get(const string &file)
 {
-    string get =    "GET " + file + " HTTP/1.1\r\n";
-    if(getTCPClient()->getPort() == "80")
-    {
-        get = get + "Host: " + getTCPClient()->getAddress() + "\r\n";
-    }
-    else
-    {
-        get = get + "Host: " + getTCPClient()->getAddress() + ":" + getTCPClient()->getPort() + "\r\n";
-    }
+    string get("");
+    get = "GET " + file + " HTTP/1.1\r\n";
+    get = get + "Host: " + getTCPClient()->getAddress() + "\r\n";
     get = get + "Accept: */*\r\n";
-    get = get + "Accept-Encoding: *\r\n";
+    get = get + "Accept-Encoding: gzip\r\n";
     get = get + "Connection: close\r\n\r\n";
-    Log::i(get);
+    LogI(get);
     getTCPClient()->write(get);
 }
 
@@ -281,34 +274,28 @@ void HttpClient::url(string url, bool strict)
     vector<string> data = parseURL(url, strict);
 
     string protocole(data[0]);
-    string server(data[1]);
 
-    setProtocole(data[0]);
+    if(protocole == "")
+    {
+        protocole = "http";
+    }
+
+    if(protocole != "http" && protocole != "https")
+    {
+        throw GenEx(ExInvalidProtocole, protocole);
+    }
+
+    if(protocole == "https")
+    {
+        _client = new SSLClient(getTCPClient()->getAddress(), getTCPClient()->getPort());
+    }
+
+    getTCPClient()->setProtocole(protocole);
     getTCPClient()->setAddress(data[1]);
     getTCPClient()->setPort(data[2]);
     setPath(data[3]);
     parsePath();
     parseQuery(data[4]);
-
-    if(getProtocole() != "http" && getProtocole() != "https")
-    {
-        throw GenEx(ExInvalidProtocole, _protocole);
-    }
-
-
-    if(getProtocole() == "")
-    {
-        setProtocole("http");
-    }
-    if(getProtocole() == "https")
-    {
-        _client = new SSLClient(server, protocole);
-    }
-    if(getTCPClient()->getPort() == "")
-    {
-        getTCPClient()->setPort("80");
-    }
-
 }
 
 void HttpClient::parsePath()
@@ -425,6 +412,13 @@ void HttpClient::parseHeader()
                 continue;
             }
 
+            str = "CONTENT-ENCODING: ";
+            if((pos = tools::toUpper(line).find(str)) != string::npos)
+            {
+                _content_encoding = line.substr(pos + str.size());
+                _header = _header + line + "\n";
+                continue;
+            }
             _unparsed_header = _unparsed_header + line + "\n";
         }
         if(!getTCPClient()->isSocketEndReached())
@@ -506,6 +500,10 @@ void HttpClient::parse()
 void HttpClient::recuperateData()
 {
     _data = "";
+    if(tools::toUpper(getContentEncoding()) == "GZIP")
+    {
+        getTCPClient()->setGZip(true);
+    }
     if(isChunked())
     {
         parseChunkedData();    
@@ -544,13 +542,14 @@ void HttpClient::printInfos()
     oss << "Unite donnees = " << getAcceptRanges() << endl;
     oss << "Location = " << getLocation() << endl;
     oss << "Encoding = " << getEncoding() << endl;
+    oss << "Content-Encoding = " << getContentEncoding() << endl;
     if(getUnparsedHeader() != "")
     {
         oss << "----------------- Le reste de l'en-tete ---------------- ";
         oss << endl << getUnparsedHeader() << endl;
     }
     oss << "-------------------------------------------------------- " << endl;
-    Log::i(oss.str());
+    LogI(oss.str());
 }
 
 BasicClient *HttpClient::getTCPClient()

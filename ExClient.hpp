@@ -42,11 +42,19 @@ class ExInvalidURL : public Exception
         /* ====================  Constructors  ==================== */
         ExInvalidURL
             (
-             const std::string &msg,
-             const std::string &file,
-             int line,
-             const std::string &function
-            ) throw():Exception(ERR::INVALID_URL, msg, file, line, function){};
+                const std::string &msg,
+                const std::string &file,
+                const std::string &function,
+                int line
+            ) throw():Exception(ERR::INVALID_URL, msg, file, function, line)
+        {};
+
+        ExInvalidURL
+            (
+                const std::string &msg,
+                const ExceptionInfo &info
+            ) throw():Exception(ERR::INVALID_URL, msg, info)
+        {};
 };
 /* -----************************  end of class  ************************----- \\
            ExInvalidURL
@@ -69,12 +77,21 @@ class ExReadSocket : public Exception
         /* ====================  Constructors  ==================== */
         ExReadSocket
             (
-             const std::string &msg,
-             const std::string &file,
-             int line,
-             const std::string &function
+                const std::string &msg,
+                const std::string &file,
+                const std::string &function,
+                int line
             )
-            throw():Exception(ERR::READ_SOCKET, msg, file, line, function){};
+            throw():Exception(ERR::READ_SOCKET, msg, file, function, line)
+        {};
+
+        ExReadSocket
+            (
+                const std::string &msg,
+                const ExceptionInfo &info
+            )
+            throw():Exception(ERR::READ_SOCKET, msg, info)
+        {};
 };
 /* -----************************  end of class  ************************----- \\
            ExReadSocket
@@ -97,12 +114,21 @@ class ExCloseConnection : public Exception
         /* ====================  Constructors  ==================== */
         ExCloseConnection
             (
-             const std::string &msg,
-             const std::string &file,
-             int line,
-             const std::string &function
+                const std::string &msg,
+                const std::string &file,
+                const std::string &function,
+                int line
             )
-            throw():Exception(ERR::READ_SOCKET, msg, file, line, function){};
+            throw():Exception(ERR::READ_SOCKET, msg, file, function, line)
+        {};
+
+        ExCloseConnection
+            (
+                const std::string &msg,
+                const ExceptionInfo &info
+            )
+            throw():Exception(ERR::READ_SOCKET, msg, info)
+        {};
 };
 /* -----************************  end of class  ************************----- \\
            ExCloseConnection

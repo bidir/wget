@@ -1,6 +1,6 @@
 -> Compiler
     make
-    Le programme nécessite la libraire libssl-dev et libboost-all-dev.
+    Le programme nécessite les libraires libssl-dev, boost et libboost-all-dev.
 
 -> Executer
     ./bin/wget <url> <fichier où enregistrer>

@@ -45,6 +45,9 @@ class HttpDownloaderQueue
         /* ====================  Data members  ==================== */
         bool _stop;
 
+        unsigned int _d_index;
+        unsigned int _p_index;
+
         std::mutex _m_put_url;
         std::mutex _m_get_url;
         std::mutex _m_put_file;
@@ -70,7 +73,11 @@ class HttpDownloaderQueue
 
 
         /* ====================  Accessors     ==================== */
+        unsigned int getDIndex();
+        unsigned int getPIndex();
         unsigned int getDepth();
+        std::vector<std::string> &getURLs();
+        std::vector<std::string> &getFiles();
 
 
         /* ====================  Mutators      ==================== */
@@ -89,7 +96,6 @@ class HttpDownloaderQueue
         std::string getURL();
         std::string getFile();
         void stop();
-        bool empty();
         bool isDEnd();
         bool isPEnd();
         bool isEnd();

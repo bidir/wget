@@ -148,8 +148,9 @@ int main(int argc, char *argv[])
         end();
         return 0; 
     }
-    catch(const Exception &e)
+    catch(Exception &e)
     {
+        AddTrace(e);
         Log::e(e);
         end();
         return e.getCode();

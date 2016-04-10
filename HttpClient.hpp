@@ -57,7 +57,6 @@ class HttpClient
         unsigned int _status;
         int _content_length;
 
-        std::string _protocole;
         std::string _path;
         std::string _filename;
         std::string _content_type;
@@ -70,6 +69,7 @@ class HttpClient
         std::string _data;
         std::string _location;
         std::string _encoding;
+        std::string _content_encoding;
 
         std::map<std::string, std::string> _queries;
 
@@ -100,6 +100,7 @@ class HttpClient
         std::string getData();
         std::string getLocation();
         std::string getEncoding();
+        std::string getContentEncoding();
 
         std::map<std::string, std::string> getQueries();
         std::string getQuery(std::string name);
@@ -108,7 +109,6 @@ class HttpClient
         /* ====================  Mutators      ==================== */
         void setPath(const std::string &path);
         void setFilename(const std::string &filename);
-        void setProtocole(const std::string &protocole);
 
 
         /* ====================  Operators     ==================== */

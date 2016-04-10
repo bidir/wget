@@ -45,12 +45,11 @@ namespace tools
     std::string getCurrentTime();
     std::istream &getline(std::istream &in, std::string &line);
     std::string removeSpaces(const std::string &str);
-    Exception getException(const std::string &msg, const char *file, int line);
-    Exception getException(const std::string &msg, const char *file, int line, const char *func);
     void createDir(const char *path);
     void createDir(const std::string &path);
     bool isDirExists(const std::string &path);
     bool isDirExists(const std::string &path);
+    std::vector<char> ungzip(const char *compr, unsigned int size);
 }
 
 #endif
