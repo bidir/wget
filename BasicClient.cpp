@@ -110,27 +110,34 @@ Boost::Streambuf &BasicClient::getMessage()
  * l'utilisateur a utilisé readUntil, qui lit dans la soquet
  * jusqu'à trouver le fanion, mais peut le dépasser, alors il
  * transformer en string que la quantité de bytes qu'il veut. */
-string BasicClient::getString(int size)
+string BasicClient::getString(unsigned int size)
 {
-    if(size < 0)//si size < 0, transformer la totalité du buffer en string
+    char *buff = new char[size + 1];
+    istream istr(&_message);
+    istr.read(buff, size);
+    const char *buff2 = tools::ungzip(buff, size).data();
+    delete buff;
+    return string(buff2, size) + "\0";
+}
+
+string BasicClient::getString()
+{
+    readSome();
+    istream istr(&getMessage());
+    string str = "", line;
+    while(getline(istr, line))
     {
-        istream istr(&getMessage());
-        string str = "", line;
-        while(getline(istr, line))
-        {
-            str = str + line + "\n";
-        }
+        str = str + line + "\n";
+    }
+    if(getGZip())
+    {
+        vector<char> data = tools::ungzip(str.c_str(), str.size());
+        return string(data.data(), data.size());
+    }
+    else
+    {
         return str;
     }
-    else //sinon lire et ransformer en string que size bytes
-    {
-        char *buff = new char[size + 1];
-        istream istr(&_message);
-        istr.read(buff, size);
-        buff[size] = '\0';
-        return string(buff);
-    }
-
 }
 
 string BasicClient::getAddress()
@@ -196,6 +203,7 @@ void BasicClient::setEndOfSocket(bool val)
 ostream &operator<<(ostream &out, BasicClient &client)
 {
     client.readSome();
+    out.flush();
     if(client.getGZip())
     {
         vector<char> data = tools::ungzip(buffer_cast<const char *>(client.getMessage().data()), client.getBufSize());
@@ -205,6 +213,7 @@ ostream &operator<<(ostream &out, BasicClient &client)
     {
         out.write(buffer_cast<const char *>(client.getMessage().data()), client.getBufSize());
     }
+    out.flush();
     return out;
 }
 
@@ -245,7 +254,6 @@ void BasicClient::readSome()
 
     if(error)
     {
-        //cerr << "Probleme de lecture sur la socket: " << error.message() << endl;
         Boost::SystemError es(error);
         throw GenEx(ExReadSocket, es.what());
     }

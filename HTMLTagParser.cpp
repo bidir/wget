@@ -100,6 +100,7 @@ void HTMLTagParser::searchTags()
             }
             catch(const ExHTMLTag &e)
             {
+                Log::e(e);
                 parse = false;
                 break;
             }
@@ -109,16 +110,19 @@ void HTMLTagParser::searchTags()
 
 void HTMLTagParser::addTagToParse(string tag)
 {
+    tag = tools::toUpper(tag);
     for(unsigned int i = 0; i < _tags_to_parse.size(); i++)
     {
         if(_tags_to_parse[i] == tag)
+        {
             return;
+        }
     }
-    _tags_to_parse.push_back(tools::toUpper(tag));
+    _tags_to_parse.push_back(tag);
 }
 
 void HTMLTagParser::removeComments()
 {
-    regex e("<\\!--((?!<\\!--|-->).)*-->");
+    regex e("<\\!--((?!<\\!--|-->).)*-->", regex_constants::icase);
     _content = regex_replace(_content, e, "");
 }

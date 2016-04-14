@@ -33,6 +33,7 @@
 
 namespace tools
 {
+    //Permet dans transformer une chaine de caractère en majuscule
     void toUpper(std::string *str);
     std::string toString(const int &val);
     std::string toString(const unsigned int &val);

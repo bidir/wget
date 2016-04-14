@@ -100,7 +100,8 @@ class BasicClient
         size_t getReadSize();
         size_t getBufSize();
         Boost::Streambuf &getMessage();
-        std::string getString(int size = -1);
+        std::string getString(unsigned int size);
+        std::string getString();
         std::string getAddress();
         std::string getPort();
         std::string getProtocole();

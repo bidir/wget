@@ -34,24 +34,57 @@ Class: HTMLTagParser
 Description:  
 // |....----------------------------------------------------------------....| \\
 // \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\|///////////////////////////////////// */
+/**
+ * @brief Cette classe est une boite à outils pour analyser un contenu HTML.
+ * Elle permet de constuire et de chercher des balises HTML.
+ */
 class HTMLTagParser
 {
     private:
         /* ====================  Data members  ==================== */
+        /**
+         * @brief Le texte à analyser.
+         */
         std::string _content;
+        /**
+         * @brief Le flux contenant le HTML à analyser.
+         */
         std::istream *_in;
 
+        /**
+         * @brief La liste des balises à chercher.
+         */
         std::vector<std::string> _tags_to_parse;
+        /**
+         * @brief La liste des balises trouvées.
+         */
         std::vector<HTMLTag> _tags;
 
 
     public:
         /* ====================  Constructors  ==================== */
+        /**
+         * @brief Un constructeur
+         *
+         * @param in Le flux contenant le texte HTML à analyser.
+         */
         HTMLTagParser(std::istream &in);
 
 
         /* ====================  Accessors     ==================== */
+        /**
+         * @brief Récupérer les balises trouvées.
+         *
+         * @return La liste des balises trouvées.
+         */
         std::vector<HTMLTag> &getParsedTags();
+        /**
+         * @brief Récupérer une balise trouvée.
+         *
+         * @param n L'indice de _tags
+         *
+         * @return Une balise trouvée.
+         */
         HTMLTag getParsedTag(int n);
         std::vector<std::string> &getTagsToParse();
         std::string getTagToParse(int n);
@@ -66,15 +99,24 @@ class HTMLTagParser
 
 
         /* ====================  Methods       ==================== */
+        /**
+         * @brief Ajouter le nom d'une balise HTML à chercher.
+         *
+         * @param tag Le nom de la balise HTML.
+         */
         void addTagToParse(std::string tag);
+        /**
+         * @brief Lancer l'analyse du contenu HTML.
+         */
         void parse();
+        /**
+         * @brief Supprimer les commentaire HTML du contenu à analyser.
+         */
         void removeComments();
 
 
     protected:
         /* ====================  Methods       ==================== */
-        std::string readNextTag();
-        bool parseHead(const std::string &file);
         void searchTags();
 };
 /* -----************************  end of class  ************************----- \\

@@ -13,7 +13,7 @@
  * Created: 02/22/16 15:27:27
  * Revision: none
  *
- * Commants: Mettre le protocole dans BasicClient?
+ * Commants: Mettre le protocole dans BasicClient
  *
  * Compiler: gcc
  *
@@ -51,12 +51,13 @@ class HttpClient
         static std::string reg_quer;
         static std::string reg_queries;
     private:
-        BasicClient* _client;
         bool _chunked;
 
         unsigned int _status;
         int _content_length;
 
+        std::string _header;
+        std::string _data;
         std::string _path;
         std::string _filename;
         std::string _content_type;
@@ -64,12 +65,12 @@ class HttpClient
         std::string _http_version;
         std::string _connection;
         std::string _accept_ranges;
-        std::string _header;
         std::string _unparsed_header;
-        std::string _data;
         std::string _location;
         std::string _encoding;
         std::string _content_encoding;
+
+        BasicClient* _client;
 
         std::map<std::string, std::string> _queries;
 
@@ -87,6 +88,8 @@ class HttpClient
         bool isChunked();
         unsigned int getStatus();
         int getContentLength();
+        std::string getHeader();
+        std::string &data();
         std::string getProtocole();
         std::string getPath();
         std::string getFilename();
@@ -95,9 +98,7 @@ class HttpClient
         std::string getHttpVersion();
         std::string getConnection();
         std::string getAcceptRanges();
-        std::string getHeader();
         std::string getUnparsedHeader();
-        std::string getData();
         std::string getLocation();
         std::string getEncoding();
         std::string getContentEncoding();

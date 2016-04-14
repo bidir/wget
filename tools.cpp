@@ -92,21 +92,29 @@ namespace tools
         }
         catch(bad_lexical_cast &e)
         {
-            throw GenEx(Exception, 0, e.what());
+            throw GenEx(Exception, 0, string(str) + " n'est pas un entier");
         }
         return ret;
     }
 
     int toInt(const string &str)
     {
-        return toInt(str.c_str());
+        try
+        {
+            return toInt(str.c_str());
+        }
+        catch(Exception &ex)
+        {
+            AddTrace(ex);
+            throw ex;
+        }
     }
 
     unsigned int toUInt(const char *str)
     {
         if(str[0] == '-')
         {
-            throw GenEx(Exception, 0, string(str) + " n'est pas un entier non signe");
+            throw GenEx(Exception, 0, string(str) + " n'est pas un entier positif.");
         }
         unsigned int ret;
         try
@@ -115,7 +123,7 @@ namespace tools
         }
         catch(bad_lexical_cast &e)
         {
-            throw GenEx(Exception, 0, e.what());
+            throw GenEx(Exception, 0, string(str) + " n'est pas un entier positif.");
         }
         return ret;
     }

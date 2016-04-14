@@ -29,6 +29,9 @@ using namespace std;
 using namespace regex_constants;
 
 
+string HTMLTag::reg_tag = "(\\w*)\\s*=\\s*\"([^\"<>]*(\\\\\"|\\\\<|\\\\>)*[^\"<>]*)\"";
+
+
 /* ////////////////////////////////////|\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\ \\
 // |....oooooooOOOO000000000000000000000000000000000000000000OOOOooooooo....| \\
 // |....---------------|             class             |----------------....| \\
@@ -57,7 +60,7 @@ map<string, string> HTMLTag::getAttributes()
 
 string HTMLTag::getAttribute(string name)
 {
-    return _attrs[name];
+    return _attrs[tools::toUpper(name)];
 }
 
 
@@ -65,6 +68,7 @@ string HTMLTag::getAttribute(string name)
 /* ====================  Methods       ==================== */
 string HTMLTag::parse(const string &str)
 {
+    LogD("entree");
     smatch m;
     regex e("^.*<(\\w*)\\s");
     if(!regex_search(str, m, e))
@@ -73,23 +77,27 @@ string HTMLTag::parse(const string &str)
     }
     string name_str(m.str(1));
     _name = tools::toUpper(name_str);
+    LogD("fin");
     return parseTag(str);
 }
 
 string HTMLTag::parse(const string &str, const string &tagname)
 {
+    LogD("entree = " + str);
     _name = tools::toUpper(tagname);
+    LogD("fin");
     return parseTag(str);
 }
 
 string HTMLTag::parseTag(const string &str)
 {
+    LogD("entree");
     regex e("<" + _name + "\\s+(([^>])*)\\s*/?>", regex_constants::icase);
     smatch m;
 
     if(!regex_search(str, m, e))
     {
-        throw GenEx(ExHTMLTag, "\"" + str + " n'est pas bien pour le balise \"" + _name + "\"");
+        throw GenEx(ExHTMLTag, "\"" + str + "\" n'est pas bien pour le balise \"" + _name + "\"");
     }
 
     string attrs(m.str(1));
@@ -105,7 +113,7 @@ void HTMLTag::parseAttrs(const string &str)
         return;
     }
     string s = str;
-    regex e1("(\\w*)\\s*=\\s*\"([^\"<>]*(\\\\\"|\\\\<|\\\\>)*[^\"<>]*)\"");
+    regex e1(reg_tag);
     smatch m;
 
     while(regex_search(s, m, e1))

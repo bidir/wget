@@ -28,7 +28,6 @@
 #include <vector>
 #include <map>
 #include <string>
-#include <thread>
 #include <mutex>
 
 #include "Exceptions.hpp"

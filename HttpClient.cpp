@@ -59,10 +59,11 @@ HttpClient::HttpClient(string addresse):
 
 
 HttpClient::HttpClient(BasicClient *client):
-    _client(client),
     _chunked(false),
     _status(0),
     _content_length(-1),
+    _header(""),
+    _data(""),
     _path(""),
     _filename(""),
     _content_type(""),
@@ -70,11 +71,10 @@ HttpClient::HttpClient(BasicClient *client):
     _http_version(""),
     _connection(""),
     _accept_ranges(""),
-    _header(""),
     _unparsed_header(""),
-    _data(""),
     _location(""),
     _encoding(""),
+    _client(client),
     _queries()
 {}
 
@@ -83,7 +83,9 @@ HttpClient::HttpClient(string addresse, string port):
 {}
 
 HttpClient::~HttpClient()
-{}
+{
+    delete _client;
+}
 
 
 
@@ -103,6 +105,16 @@ int HttpClient::getContentLength()
     return _content_length;
 }
 
+string &HttpClient::data()
+{
+    return _data;
+}
+
+string HttpClient::getHeader()
+{
+    return _header;
+}
+
 string HttpClient::getProtocole()
 {
     return _client->getProtocole();
@@ -116,16 +128,6 @@ string HttpClient::getPath()
 string HttpClient::getFilename()
 {
     return _filename;
-}
-
-map<string, string> HttpClient::getQueries()
-{
-    return _queries;
-}
-
-string HttpClient::getQuery(string name)
-{
-    return _queries[name];
 }
 
 string HttpClient::getContentType()
@@ -153,19 +155,9 @@ string HttpClient::getAcceptRanges()
     return _accept_ranges;
 }
 
-string HttpClient::getHeader()
-{
-    return _header;
-}
-
 string HttpClient::getUnparsedHeader()
 {
     return _unparsed_header;
-}
-
-string HttpClient::getData()
-{
-    return _data;
 }
 
 string HttpClient::getLocation()
@@ -181,6 +173,16 @@ string HttpClient::getEncoding()
 string HttpClient::getContentEncoding()
 {
     return _content_encoding;
+}
+
+map<string, string> HttpClient::getQueries()
+{
+    return _queries;
+}
+
+string HttpClient::getQuery(string name)
+{
+    return _queries[name];
 }
 
 
@@ -449,7 +451,6 @@ void HttpClient::parseChunkedData()
     {
         length = hexToDec(line);
         getTCPClient()->setSizeToRead(length);
-        getTCPClient()->readSome();
         if(getTCPClient()->getWriteInOstream())
         {
             getTCPClient()->getOstream() << *getTCPClient();
@@ -515,10 +516,11 @@ void HttpClient::recuperateData()
         if(getTCPClient()->getWriteInOstream())
         {
             getTCPClient()->getOstream() << *getTCPClient();
-            return;
         }
-        getTCPClient()->readSome();
-        _data = _data + getTCPClient()->getString();
+        else
+        {
+            _data = getTCPClient()->getString();
+        }
     }
 }
 
@@ -563,11 +565,6 @@ BasicClient *HttpClient::getTCPClient()
 
 
 /* ////////////////////////////////////|\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\ \\
-// |....oooooooOOOO000000000000000000000000000000000000000000OOOOooooooo....| \\
-// |....oooooooOOOO00000********°°°°°^^^^^°°°°°********000000OOOOooooooo....| \\
-// |....---------------|             class             |----------------....| \\
-// |....°°°°°°°°°°°°°°°                                 °°°°°°°°°°°°°°°°....| \\
-    Class: HttpsClient
     Description: Cette classe, qui hérite de Client, permet de définir une
     connexin TCP avec un serveur HTTPS.
 // |....----------------------------------------------------------------....| \\

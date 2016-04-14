@@ -37,11 +37,11 @@ ofstream d_file;
 
 int main(int argc, char *argv[])
 {
-    log_file.open("/tmp/output.log", ofstream::out|ofstream::app);
-    d_file.open("/tmp/output.debug", ofstream::out |ofstream::app);
+    log_file.open("/tmp/wget.log", ofstream::out|ofstream::app);
+    d_file.open("/tmp/wget.debug", ofstream::out |ofstream::app);
 
     Log::add(log_file);
-    Log::setDebugOut(d_file);
+    //Log::setDebugOut(d_file);
     try
     {
         bool only_page(false);
@@ -69,7 +69,16 @@ int main(int argc, char *argv[])
                     return EXIT_FAILURE;
                 }
                 i++;
-                depth = tools::toUInt(argv[i]);
+                try
+                {
+                    depth = tools::toUInt(argv[i]);
+                }
+                catch(Exception &ex)
+                {
+                    cerr << "ERREUR: L'option \"" << argv[i-1] << "\" doit etre suivi d'un nombre." << endl;
+                    end();
+                    return EXIT_FAILURE;
+                }
             }
             else if(string(argv[i]) == "-d" || string(argv[i]) == "--debug")
             {
@@ -84,7 +93,16 @@ int main(int argc, char *argv[])
                     return EXIT_FAILURE;
                 }
                 i++;
-                nb_get = tools::toUInt(argv[i]);
+                try
+                {
+                    nb_get = tools::toUInt(argv[i]);
+                }
+                catch(Exception &ex)
+                {
+                    cerr << "ERREUR: L'option \"" << argv[i-1] << "\" doit etre suivi d'un nombre." << endl;
+                    end();
+                    return EXIT_FAILURE;
+                }
             }
             else if(string(argv[i]) == "--nb-th-analyse")
             {
@@ -95,7 +113,16 @@ int main(int argc, char *argv[])
                     return EXIT_FAILURE;
                 }
                 i++;
-                nb_par = tools::toUInt(argv[i]);
+                try
+                {
+                    nb_par = tools::toUInt(argv[i]);
+                }
+                catch(Exception &ex)
+                {
+                    cerr << "ERREUR: L'option \"" << argv[i-1] << "\" doit etre suivi d'un nombre." << endl;
+                    end();
+                    return EXIT_FAILURE;
+                }
             }
             else
             {
@@ -133,6 +160,7 @@ int main(int argc, char *argv[])
         }
 
         Log::init();
+        LogI("DEBUT");
         HttpDownloader downloader;
 
         downloader.setPath(path);
@@ -141,6 +169,10 @@ int main(int argc, char *argv[])
         downloader.setNbParseThreads(nb_par);
         downloader.setDepth(depth);
         downloader.setPrintRefresh(100);
+
+        downloader.addTag("link", "href");
+        downloader.addTag("img", "src");
+        downloader.addTag("script", "src");
 
         downloader.download(url);
         downloader.printInfos();
@@ -153,13 +185,15 @@ int main(int argc, char *argv[])
         AddTrace(e);
         Log::e(e);
         end();
+        cerr << "ERREUR: " << e.getMessage() << endl;
         return e.getCode();
     }
     catch(const exception &e)
     {
+        cerr << "ERREUR: " << e.what() << endl;
         Log::e(e.what());
         end();
-        return -1;
+        return EXIT_FAILURE;
     }
 
     cerr << "ERREUR: il faut donner l'URL et un nom de dossier." << endl;
@@ -170,6 +204,7 @@ int main(int argc, char *argv[])
 void end()
 {
     cout << endl;
+    LogI("FIN");
     log_file.close();
     d_file.close();
 }

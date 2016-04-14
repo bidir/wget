@@ -18,6 +18,7 @@
 
 #include <sstream>
 #include <fstream>
+#include <thread>
 
 #include "tools.hpp"
 #include "Log.hpp"
@@ -49,7 +50,7 @@ ostream *Log::_d_out = NULL;
 /* ====================  Methods       ==================== */
 void Log::init()
 {
-    _m_write.lock();
+    unique_lock<mutex>(_m_write);
     _log = true;
     if(_d_out != NULL)
     {
@@ -67,7 +68,6 @@ void Log::init()
             << "000000000000000000000000000000000000000000000000" << endl
             << "================================================" << endl;
     }
-    _m_write.unlock();
 }
 
 void Log::add(ostream &out)
@@ -87,19 +87,17 @@ void Log::stop()
 
 void Log::write(const string &msg)
 {
-    _m_write.lock();
+    unique_lock<mutex>(_m_write);
     for(unsigned int i = 0; i < _out.size(); i++)
     {
         *_out[i] << endl << msg << endl;
     }
-    _m_write.unlock();
 }
 
 void Log::writeD(const string &msg)
 {
-    _m_write.lock();
+    unique_lock<mutex>(_m_write);
     *_d_out << endl << msg << endl;
-    _m_write.unlock();
 }
 
 void Log::print(const string &label, const Exception &ex)
@@ -107,7 +105,8 @@ void Log::print(const string &label, const Exception &ex)
     if(_log)
     {
         ostringstream oss;
-        oss << "[" << label
+        oss << "-" << this_thread::get_id() << "-"
+            << "[" << label
             << "-" << ex.getCode() << "]"
             << "[" << ex.getInfo().getFile() <<":"<< ex.getInfo().getLine() << "]"
             << "["  << ex.getInfo().getFunction() << "]"
@@ -137,7 +136,8 @@ void Log::print(const string &label, const string &msg)
     if(_log)
     {
         ostringstream oss;
-        oss << "[" << label << "]"
+        oss << "[" << this_thread::get_id() << "]"
+            << "[" << label << "]"
             << "[" << tools::getCurrentTime() << "]" << endl
             << msg;
         if(label == _d && _d_out != NULL)

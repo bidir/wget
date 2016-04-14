@@ -18,7 +18,9 @@
 
 
 #include <iostream>
+#include <sstream>
 #include "HttpDownloaderQueue.hpp"
+#include "Log.hpp"
 
 
 using namespace std;
@@ -80,48 +82,75 @@ void HttpDownloaderQueue::setListener(HttpDownloaderQueueListener &listener)
 /* ====================  Methods       ==================== */
 void HttpDownloaderQueue::addURL(const string &url, unsigned int depth)
 {
-    _m_put_url.lock();
+    //Bloquer l'ajout des urls.
+    unique_lock<mutex>(_m_put_url);
+    //Si l'url n'est pas déjà ajoutée et n'est pas vide.
     if(url != "" && !hasURL(url))
     {
-        _urls.push_back(url);
-        _d_depths.push_back(depth);
+        _urls.push_back(url); //Ajouter à la liste
+        _d_depths.push_back(depth);//Ajoute sa profondeur
+        //Libérer un thread de récupération d'url.
+        LogD("Ajout de l'url \"" + url + "\"");
         _cv_url.notify_one();
     }
-    _m_put_url.unlock();
+    //Libérer le mutex d'ajout d'urls.
 }
 
-void HttpDownloaderQueue::addFile(const string &url, unsigned int depth)
+void HttpDownloaderQueue::addFile(const string &file, unsigned int depth)
 {
-    _m_put_file.lock();
-    _files.push_back(url);
-    _p_depths.push_back(depth);
-    _cv_file.notify_one();
-    _m_put_file.unlock();
+    //Bloquer l'ajout des fichiers.
+    unique_lock<mutex>(_m_put_file);
+    //Si le fichier n'est pas déjà ajouté et n'est pas vide.
+    if(file != "" && !hasFile(file))
+    {
+        _files.push_back(file);
+        _p_depths.push_back(depth);
+        //Libérer un thread d'analyse.
+        LogD("Ajout du fichier \"" + file + "\"");
+        _cv_file.notify_one();
+    }
 }
 
 string HttpDownloaderQueue::getURL()
 {
+    //Marquer le thread actuel fini.
     _th_d_end[this_thread::get_id()] = true;
+    //Locker le mutex de récupération d'url
     unique_lock<mutex> lock(_m_get_url);
+    //Tant que l'index des urls pointe vers la dernière case
     while(_urls.size() == _d_index && !_stop)
     {
+        //Attente qu'une url soit ajoutée.
         _cv_url.wait(lock);
     }
+    stringstream ss;
     string url("");
+    //Si un thread n'a pas signaler que c'est fini.
     if(!_stop)
     {
+        //Marquer le thread actuel en exécution.
         _th_d_end[this_thread::get_id()] = false;
-        url = _urls[_d_index];
         if(_listener)
         {
             _listener->onGetURL(_d_depths[_d_index]);
         }
+        //Récupérer l'url à l'index de téléchargement
+        url = _urls[_d_index];
+        //Attribuer la profondeur à laquelle travaillera le thread.
         _th_depth[this_thread::get_id()] = _d_depths[_d_index];
+        //Incrémenter l'indice de téléchargement.
         _d_index++;
+        LogD("Sortie de l'url \"" + url + "\"");
+    }
+    else
+    {
+        //Sinon on marque le thrad fini.
+        _th_d_end[this_thread::get_id()] = true;
     }
     return url;
 }
 
+//voir getURL.
 string HttpDownloaderQueue::getFile()
 {
     _th_p_end[this_thread::get_id()] = true;
@@ -130,6 +159,7 @@ string HttpDownloaderQueue::getFile()
     {
         _cv_file.wait(lock);
     }
+
     string file("");
     if(!_stop)
     {
@@ -141,10 +171,10 @@ string HttpDownloaderQueue::getFile()
         }
         _th_depth[this_thread::get_id()] = _p_depths[_p_index];
         _p_index++;
+        LogD("Sortie du fichier \"" + file + "\"");
     }
     return file;
 }
-
 
 bool HttpDownloaderQueue::hasURL(const string &url)
 {
@@ -160,9 +190,9 @@ bool HttpDownloaderQueue::hasURL(const string &url)
 
 bool HttpDownloaderQueue::hasFile(const string &file)
 {
-    for(unsigned int i = 0; i < _urls.size(); i++)
+    for(unsigned int i = 0; i < _files.size(); i++)
     {
-        if(_urls[i] == file)
+        if(_files[i] == file)
         {
             return true;
         }
@@ -177,11 +207,13 @@ void HttpDownloaderQueue::stop()
 
 bool HttpDownloaderQueue::isDEnd()
 {
+    //S'il rest des url à télécharger alors ce n'est pas fini.
     if(_urls.size() != _d_index)
     {
         return false;
     }
     unsigned int size = 0;
+    //Si tous les thread sont fini, alors c'est fini.
     for(
             map<thread::id, bool>::iterator it = _th_d_end.begin();
             size < _th_d_end.size();
@@ -194,9 +226,11 @@ bool HttpDownloaderQueue::isDEnd()
         }
         size++;
     }
+    //Sinon, un thread travaille encore.
     return true;
 }
 
+//voir isDEnd()
 bool HttpDownloaderQueue::isPEnd()
 {
     if(_files.size() != _p_index)

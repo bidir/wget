@@ -19,6 +19,7 @@
 
 #include <chrono>
 #include <fstream>
+#include <regex>
 
 #include "tools.hpp"
 #include "HttpDownloader.hpp"
@@ -54,7 +55,7 @@ HttpDownloader::HttpDownloader(int depth):
 HttpDownloader::HttpDownloader(string path, int depth):
     _only_page(false),
     _print(false),
-    _nb_pages(0),
+    _nb_files(0),
     _print_refresh(100),
     _depth(depth),
     _nb_d_th(4),
@@ -63,8 +64,10 @@ HttpDownloader::HttpDownloader(string path, int depth):
     _m_print(),
     _th_print(NULL),
     _client(),
+    _tags(0),
     _d_threads(0),
-    _p_threads(0)
+    _p_threads(0),
+    _tag_to_attr()
 {}
 
 HttpDownloader::~HttpDownloader()
@@ -87,9 +90,9 @@ bool HttpDownloader::getPrint()
     return _print;
 }
 
-unsigned int HttpDownloader::getNbDownloadedPages()
+unsigned int HttpDownloader::getNbDownladedFiles()
 {
-    return _nb_pages;
+    return _nb_files;
 }
 
 unsigned int HttpDownloader::getPrintRefresh()
@@ -161,8 +164,23 @@ void HttpDownloader::setPath(string path)
 
 
 /* ====================  Methods       ==================== */
+void HttpDownloader::addTag(const string &t, const string &a)
+{
+    string tag(tools::toUpper(t)), attr(tools::toUpper(a));
+    for(unsigned int i = 0; i < _tags.size(); i++)
+    {
+        if(_tags[i] == tag)
+        {
+            return;
+        }
+    }
+    _tags.push_back(tag);
+    _tag_to_attr[tag] = attr;
+}
+
 void HttpDownloader::download(string url)
 {
+    addTag("a", "href");
     try
     {
         _client.url(url);
@@ -206,6 +224,7 @@ void HttpDownloader::printInfos()
 {
     cout << endl;
     _print = true;
+    delete _th_print;
     _th_print = new thread(HttpDownloader::sPrintInfos, this);
 }
 
@@ -249,8 +268,9 @@ void HttpDownloader::sPrintInfos(HttpDownloader *downloader)
              << "/" << downloader->getNbDownloadThreads()
              << "   TH-A: " << downloader->getQueue().getNbRunningPThreads()
              << "/" << downloader->getNbParseThreads();
-             //<< "   P: " << downloader->getNbDownloadedPages();
+             //<< "   P: " << downloader->getNbDownladedFiles();
         this_thread::sleep_for(milliseconds(downloader->getPrintRefresh()));
+        cout.flush();
     }while(downloader->getPrint() && !downloader->getQueue().isStopped());
     downloader->unlockPrint();
 }
@@ -321,7 +341,7 @@ void HttpDownloader::get()
               client.getStatus() != 302
           )
         {
-            if(_only_page || _nb_pages == 0)
+            if(_only_page || _nb_files == 0)
             {
                 throw GenEx(ExHttpClient, client.getStatus());
             }
@@ -335,8 +355,7 @@ void HttpDownloader::get()
         if(client.getStatus() == 301 || client.getStatus() == 302)
         {
             LogI("Redirection vers " + client.getLocation());
-            if(url != client.getLocation())
-                _queue.addURL(client.getLocation(), depth);
+            _queue.addURL(client.getLocation(), depth);
             return;
         }
         else
@@ -369,24 +388,30 @@ void HttpDownloader::get()
                 return;
             }
             LogI("Ecriture des donnees dans " + filename);
-            client.getTCPClient()->writeInOstream(true, file);
-            client.recuperateData();
-
-
-            file.close();
-            LogI("Fermeture de la connexion au serveur " + _client.getTCPClient()->getAddress());
-            client.close(); 
-
-            if(tools::toUpper(client.getContentType()) == "TEXT/HTML" && depth <= _depth && !_only_page)
+            if(depth <= _depth && !_only_page)
             {
-                _queue.addFile(filename, depth);
+                if(tools::toUpper(client.getContentType()) != "TEXT/HTML")
+                {
+                    client.getTCPClient()->writeInOstream(true, file);
+                    client.close(); 
+                }
             }
+            client.recuperateData();
+            if(tools::toUpper(client.getContentType()) == "TEXT/HTML")
+            {
+                replaceServer(client.data());
+                file << client.data();
+                file.flush();
+                _queue.addFile(filename, depth);
+                file.close();
+            }
+            LogI("Fermeture de la connexion au serveur " + _client.getTCPClient()->getAddress());
         }
     }
     catch(Exception &e)
     {
         AddTrace(e);
-        if(_only_page || _nb_pages == 0)
+        if(_only_page || _nb_files == 0)
         {
             throw e;
         }
@@ -398,7 +423,7 @@ void HttpDownloader::get()
     }
     catch(const exception &ex)
     {
-        if(_only_page || _nb_pages == 0)
+        if(_only_page || _nb_files == 0)
         {
             throw ex;
         }
@@ -408,7 +433,7 @@ void HttpDownloader::get()
             return;
         }
     }
-    _nb_pages++;
+    _nb_files++;
 }
 
 void HttpDownloader::parse()
@@ -430,10 +455,10 @@ void HttpDownloader::parse()
             return;
         }
         HTMLTagParser parser(in);
-        parser.addTagToParse("link");
-        parser.addTagToParse("a");
-        parser.addTagToParse("img");
-        parser.addTagToParse("script");
+        for(unsigned int i = 0; i < _tags.size(); i++)
+        {
+            parser.addTagToParse(_tags[i]);
+        }
         parser.parse();
         in.close();
 
@@ -447,22 +472,20 @@ void HttpDownloader::parse()
             {
                 continue;
             }
-            else if(tagname == "IMG" && tag.isAttributeExists("SRC"))
+
+            for(unsigned int j = 0; j < _tags.size(); j++)
+
             {
-                s_url = createURL(tag.getAttribute("SRC"));
-            }
-            else if(tagname == "A" && tag.isAttributeExists("HREF"))
-            {
-                s_url = createURL(tag.getAttribute("HREF"));
+                if(tagname == _tags[j] && tag.isAttributeExists(_tag_to_attr[_tags[j]]))
+                {
+                    s_url = createURL(tag.getAttribute(_tag_to_attr[_tags[j]]));
+                    break;
+                }
             }
 
-            else if(tagname == "LINK" && tag.isAttributeExists("HREF"))
+            if(s_url == "")
             {
-                s_url = createURL(tag.getAttribute("HREF"));
-            }
-            else if(tagname == "SCRIPT" && tag.isAttributeExists("SRC"))
-            {
-                s_url = createURL(tag.getAttribute("SRC"));
+                continue;
             }
 
             try
@@ -538,3 +561,26 @@ string HttpDownloader::createURL(const string &path)
     return url;
 }
 
+void HttpDownloader::replaceServer(string &data)
+{
+    string reg = "(<.*)" + HttpClient::reg_prot + "?" +
+           _client.getTCPClient()->getAddress() +
+           HttpClient::reg_port + "?" +
+           "(" +
+           HttpClient::reg_path + "?" +
+           HttpClient::reg_quer + "?.*>" +
+           ")";
+
+    regex e(reg);
+    regex_replace(data, e, "$1" + getPath() + "$2", regex_constants::format_no_copy);
+    LogD(data);
+}
+
+
+void HttpDownloader::replaceRoot(string &data, const string &tag, const string &label)
+{
+    string e_reg = "(<" + tag + "\\s.*" + label + "\\s*=\\s*\")(/[^\"]\".*)";
+    regex e(e_reg);
+    regex_replace(data, e, "$1" + getPath() + "$2", regex_constants::format_no_copy);
+    LogD(data);
+}
