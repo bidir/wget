@@ -13,7 +13,7 @@
  * Created: 02/22/16 15:27:27
  * Revision: none
  *
- * Commants: Mettre le protocole dans BasicClient
+ * Commants: 
  *
  * Compiler: gcc
  *

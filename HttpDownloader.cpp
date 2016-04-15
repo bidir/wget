@@ -451,9 +451,11 @@ void HttpDownloader::parse()
     {
         return;
     }
+    LogD("debug");
 
     try
     {
+        LogD("debug");
         ifstream in;
         in.open(filename);
         if(in.fail())
@@ -461,16 +463,19 @@ void HttpDownloader::parse()
             LogW("Erreur pendant l'ouverture du fichier de sortie");
             return;
         }
+        LogD("debug");
         HTMLTagParser parser(in);
         for(unsigned int i = 0; i < _tags.size(); i++)
         {
             parser.addTagToParse(_tags[i]);
         }
+        LogD("debug");
         parser.parse();
         in.close();
 
         for(unsigned int i = 0; i < parser.getParsedTags().size(); i++)
         {
+            LogD("debug");
             HTMLTag tag = parser.getParsedTag(i);
             string s_url = "";
             string tagname = tag.getName();
@@ -480,6 +485,7 @@ void HttpDownloader::parse()
                 continue;
             }
 
+            LogD("debug");
             for(unsigned int j = 0; j < _tags.size(); j++)
 
             {
@@ -490,11 +496,13 @@ void HttpDownloader::parse()
                 }
             }
 
+            LogD("debug");
             if(s_url == "")
             {
                 continue;
             }
 
+            LogD("debug");
             try
             {
                 if(HttpClient::parseURL(s_url)[1] == _client.getTCPClient()->getAddress())
@@ -509,6 +517,7 @@ void HttpDownloader::parse()
             }
         }
         in.close();
+        LogD("debug");
         replaceURI(filename);
     }
     catch(Exception &e)
@@ -592,7 +601,6 @@ void HttpDownloader::replaceServer(string &data, const string &tag, const string
 
 void HttpDownloader::replaceRoot(string &data, const string &tag, const string &label)
 {
-    cout << data << endl;
     string e_reg = "(<" + tag + "\\s+.*" + label + "\\s*=\\s*\"/)";
     LogD(e_reg);
     regex e(e_reg, regex_constants::icase);
