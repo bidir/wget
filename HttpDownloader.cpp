@@ -72,10 +72,7 @@ HttpDownloader::HttpDownloader(string path, int depth):
 
 HttpDownloader::~HttpDownloader()
 {
-    if(_th_print)
-    {
-        delete _th_print;
-    }
+    delete _th_print;
 }
 
 
@@ -160,6 +157,10 @@ void HttpDownloader::setNbParseThreads(unsigned int nb)
 void HttpDownloader::setPath(string path)
 {
     _path = path;
+    if(_path[_path.size() - 1] != '/')
+    {
+        _path = _path + "/";
+    }
 }
 
 
@@ -388,24 +389,30 @@ void HttpDownloader::get()
                 return;
             }
             LogI("Ecriture des donnees dans " + filename);
-            if(depth <= _depth && !_only_page)
+            stringstream ss;
+            if(tools::toUpper(client.getContentType()) == "TEXT/HTML")
             {
-                if(tools::toUpper(client.getContentType()) != "TEXT/HTML")
-                {
-                    client.getTCPClient()->writeInOstream(true, file);
-                    client.close(); 
-                }
+                client.getTCPClient()->writeInOstream(true, ss);
+            }
+            else
+            {
+                client.getTCPClient()->writeInOstream(true, file);
             }
             client.recuperateData();
             if(tools::toUpper(client.getContentType()) == "TEXT/HTML")
             {
-                replaceServer(client.data());
-                file << client.data();
+                string data = ss.str();
+                file << data;
                 file.flush();
-                _queue.addFile(filename, depth);
                 file.close();
+                if(depth <= _depth && !_only_page)
+                {
+                    _queue.addFile(filename, depth);
+                }
             }
+
             LogI("Fermeture de la connexion au serveur " + _client.getTCPClient()->getAddress());
+            client.close(); 
         }
     }
     catch(Exception &e)
@@ -501,6 +508,8 @@ void HttpDownloader::parse()
                 Log::w(e);
             }
         }
+        in.close();
+        replaceURI(filename);
     }
     catch(Exception &e)
     {
@@ -561,26 +570,73 @@ string HttpDownloader::createURL(const string &path)
     return url;
 }
 
-void HttpDownloader::replaceServer(string &data)
+void HttpDownloader::replaceServer(string &data, const string &tag, const string &label)
 {
-    string reg = "(<.*)" + HttpClient::reg_prot + "?" +
-           _client.getTCPClient()->getAddress() +
-           HttpClient::reg_port + "?" +
-           "(" +
-           HttpClient::reg_path + "?" +
-           HttpClient::reg_quer + "?.*>" +
-           ")";
+    string reg_bef = "(<" + tag  + "\\s+.*" + label + "\\s*=\\s*\")";
+    string reg_pro = "(\\w+://)?";
+    string reg_url = "(" + _client.getTCPClient()->getAddress() + ")";
+    string reg_por = "(:[0-9]+)";
+    string reg_aft = "(/?[^\"]*\")";
 
-    regex e(reg);
-    regex_replace(data, e, "$1" + getPath() + "$2", regex_constants::format_no_copy);
-    LogD(data);
+    string reg = reg_bef +
+                 reg_pro +
+                 reg_url +
+                 reg_por +
+                 reg_aft;
+
+    LogD(reg);
+    regex e(reg, regex_constants::icase);
+    regex_replace(data, e, "$1$5");
 }
 
 
 void HttpDownloader::replaceRoot(string &data, const string &tag, const string &label)
 {
-    string e_reg = "(<" + tag + "\\s.*" + label + "\\s*=\\s*\")(/[^\"]\".*)";
-    regex e(e_reg);
-    regex_replace(data, e, "$1" + getPath() + "$2", regex_constants::format_no_copy);
-    LogD(data);
+    cout << data << endl;
+    string e_reg = "(<" + tag + "\\s+.*" + label + "\\s*=\\s*\"/)";
+    LogD(e_reg);
+    regex e(e_reg, regex_constants::icase);
+    regex_replace(data, e, "$1" + getPath());
+}
+
+void HttpDownloader::replaceURI(const string &filename)
+{
+    ifstream i_file;
+    i_file.open(filename);
+    if(i_file.fail())
+    {
+        Log::w(GenEx(
+                    ExOpeningFile, 
+                    "Erreur pendant l'ouverture du fichier " + filename
+                    ));
+        return;
+    }
+
+    string line(""), data("");
+    while(tools::getline(i_file, line))
+    {
+        data = data + line + "\n";
+    }
+
+    for(unsigned int i = 0; i < _tags.size(); i++)
+    {
+        replaceServer(data, _tags[i], _tag_to_attr[_tags[i]]);
+    }
+
+    for(unsigned int i = 0; i < _tags.size(); i++)
+    {
+        replaceRoot(data, _tags[i], _tag_to_attr[_tags[i]]);
+    }
+
+    ofstream o_file;
+    o_file.open(filename);
+    if(o_file.fail())
+    {
+        Log::w(GenEx(
+                    ExOpeningFile, 
+                    "Erreur pendant l'ouverture du fichier " + filename
+                    ));
+        return;
+    }
+    o_file << data;
 }

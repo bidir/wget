@@ -123,7 +123,6 @@ string HttpDownloaderQueue::getURL()
         //Attente qu'une url soit ajoutée.
         _cv_url.wait(lock);
     }
-    stringstream ss;
     string url("");
     //Si un thread n'a pas signaler que c'est fini.
     if(!_stop)
@@ -140,7 +139,7 @@ string HttpDownloaderQueue::getURL()
         _th_depth[this_thread::get_id()] = _d_depths[_d_index];
         //Incrémenter l'indice de téléchargement.
         _d_index++;
-        LogD("Sortie de l'url \"" + url + "\"");
+        LogD("Sortie de l'url " + url);
     }
     else
     {

@@ -68,7 +68,6 @@ string HTMLTag::getAttribute(string name)
 /* ====================  Methods       ==================== */
 string HTMLTag::parse(const string &str)
 {
-    LogD("entree");
     smatch m;
     regex e("^.*<(\\w*)\\s");
     if(!regex_search(str, m, e))
@@ -77,21 +76,17 @@ string HTMLTag::parse(const string &str)
     }
     string name_str(m.str(1));
     _name = tools::toUpper(name_str);
-    LogD("fin");
     return parseTag(str);
 }
 
 string HTMLTag::parse(const string &str, const string &tagname)
 {
-    LogD("entree = " + str);
     _name = tools::toUpper(tagname);
-    LogD("fin");
     return parseTag(str);
 }
 
 string HTMLTag::parseTag(const string &str)
 {
-    LogD("entree");
     regex e("<" + _name + "\\s+(([^>])*)\\s*/?>", regex_constants::icase);
     smatch m;
 

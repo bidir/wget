@@ -449,6 +449,8 @@ void HttpClient::parseChunkedData()
     istream in_first(&getTCPClient()->getMessage());
     if(tools::getline(in_first, line))
     {
+        //vector<char> data = tools::ungzip(line.c_str(), line.size());
+        //length = hexToDec(string(data.data(), data.size()));
         length = hexToDec(line);
         getTCPClient()->setSizeToRead(length);
         if(getTCPClient()->getWriteInOstream())
@@ -458,7 +460,15 @@ void HttpClient::parseChunkedData()
         }
         else
         {
-            _data = _data + getTCPClient()->getString(length);
+            try
+            {
+                _data = getTCPClient()->getString();
+            }
+            catch(Exception &ex)
+            {
+                AddTrace(ex);
+                throw ex;
+            }
         }
     }
 
@@ -473,12 +483,13 @@ void HttpClient::parseChunkedData()
             istream in2(&getTCPClient()->getMessage());
             tools::getline(in2, line);
         }
-        length = hexToDec(line);
+        vector<char> data = tools::ungzip(line.c_str(), line.size());
+        length = hexToDec(string(data.data(), data.size()));
+        LogD("length = " + tools::toString(length));
 
         if(length != 0)
         {
             getTCPClient()->setSizeToRead(length);
-            getTCPClient()->readSome();
             if(getTCPClient()->getWriteInOstream())
             {
                 getTCPClient()->getOstream() << *getTCPClient();
@@ -486,7 +497,7 @@ void HttpClient::parseChunkedData()
             }
             else
             {
-                _data = _data + getTCPClient()->getString(length);
+                _data = _data + getTCPClient()->getString();
             }
         }
     }while(length != 0);
@@ -505,13 +516,20 @@ void HttpClient::recuperateData()
     {
         getTCPClient()->setGZip(true);
     }
-    if(isChunked())
+    if(isChunked() && tools::toUpper(getContentEncoding()) != "GZIP")
     {
         parseChunkedData();    
     }
     else
     {
-        getTCPClient()->setSizeToRead(_content_length);
+        if(_content_length >= 0)
+        {
+            getTCPClient()->setSizeToRead(_content_length);
+        }
+        else
+        {
+            getTCPClient()->setSizeToRead(2048);
+        }
 
         if(getTCPClient()->getWriteInOstream())
         {
@@ -519,7 +537,16 @@ void HttpClient::recuperateData()
         }
         else
         {
-            _data = getTCPClient()->getString();
+            try
+            {
+                LogD("putain de merde = 1");
+                _data = getTCPClient()->getString();
+            }
+            catch(Exception &ex)
+            {
+                AddTrace(ex);
+                throw ex;
+            }
         }
     }
 }

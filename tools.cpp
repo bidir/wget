@@ -215,14 +215,25 @@ namespace tools
 
     vector<char> ungzip(const char *compr, unsigned int size)
     {
-        std::vector<char> compressed = std::vector<char>(compr, compr + size);
+        if(compr == NULL)
+        {
+            LogD("putain de merde");
+            throw GenEx(ExNullPointer, "La chaine a decompresser est null");
+        }
         std::vector<char> decompressed = std::vector<char>();
+        try
+        {
+            std::vector<char> compressed = std::vector<char>(compr, compr + size);
 
-        boost::iostreams::filtering_ostream os;
-        os.push(boost::iostreams::gzip_decompressor());
-        os.push(boost::iostreams::back_inserter(decompressed));
-        boost::iostreams::write(os, &compressed[0], compressed.size());
-
+            boost::iostreams::filtering_ostream os;
+            os.push(boost::iostreams::gzip_decompressor());
+            os.push(boost::iostreams::back_inserter(decompressed));
+            boost::iostreams::write(os, &compressed[0], compressed.size());
+        }
+        catch(exception &ex)
+        {
+            throw GenEx(Exception, -1, "Incapable de decompresse le contenu.");
+        }
         return decompressed;
     }
 }

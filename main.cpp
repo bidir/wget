@@ -84,7 +84,7 @@ int main(int argc, char *argv[])
             {
                 Log::add(cout);
             }
-            else if(string(argv[i]) == "--nb-th-get")
+            else if(string(argv[i]) == "--nb-th-get" || string(argv[i]) == "-g")
             {
                 if(i+1 > argc)
                 {
@@ -104,7 +104,7 @@ int main(int argc, char *argv[])
                     return EXIT_FAILURE;
                 }
             }
-            else if(string(argv[i]) == "--nb-th-analyse")
+            else if(string(argv[i]) == "--nb-th-analyse" || string(argv[i]) == "-a")
             {
                 if(i+1 > argc)
                 {

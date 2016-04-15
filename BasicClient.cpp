@@ -110,33 +110,35 @@ Boost::Streambuf &BasicClient::getMessage()
  * l'utilisateur a utilisé readUntil, qui lit dans la soquet
  * jusqu'à trouver le fanion, mais peut le dépasser, alors il
  * transformer en string que la quantité de bytes qu'il veut. */
-string BasicClient::getString(unsigned int size)
-{
-    char *buff = new char[size + 1];
-    istream istr(&_message);
-    istr.read(buff, size);
-    const char *buff2 = tools::ungzip(buff, size).data();
-    delete buff;
-    return string(buff2, size) + "\0";
-}
-
 string BasicClient::getString()
 {
-    readSome();
-    istream istr(&getMessage());
-    string str = "", line;
-    while(getline(istr, line))
+    try
     {
-        str = str + line + "\n";
+        readSome();
+        istream istr(&getMessage());
+        string str = "", line;
+        while(getline(istr, line))
+        {
+            str = str + line + "\n";
+        }
+        if(getGZip())
+        {
+            vector<char> data = tools::ungzip(str.c_str(), str.size());
+            return string(data.data(), data.size());
+        }
+        else
+        {
+            return str;
+        }
     }
-    if(getGZip())
+    catch(Exception &ex)
     {
-        vector<char> data = tools::ungzip(str.c_str(), str.size());
-        return string(data.data(), data.size());
+        AddTrace(ex);
+        throw ex;
     }
-    else
+    catch(exception &e)
     {
-        return str;
+        throw GenEx(Exception, -1, e.what());
     }
 }
 
@@ -202,16 +204,28 @@ void BasicClient::setEndOfSocket(bool val)
 /* ====================  Operators     ==================== */
 ostream &operator<<(ostream &out, BasicClient &client)
 {
-    client.readSome();
-    out.flush();
-    if(client.getGZip())
+    try
     {
-        vector<char> data = tools::ungzip(buffer_cast<const char *>(client.getMessage().data()), client.getBufSize());
-        out.write(data.data(), data.size());
+        client.readSome();
+        out.flush();
+        if(client.getGZip())
+        {
+            vector<char> data = tools::ungzip(buffer_cast<const char *>(client.getMessage().data()), client.getBufSize());
+            out.write(data.data(), data.size());
+        }
+        else
+        {
+            out.write(buffer_cast<const char *>(client.getMessage().data()), client.getBufSize());
+        }
     }
-    else
+    catch(Exception &ex)
     {
-        out.write(buffer_cast<const char *>(client.getMessage().data()), client.getBufSize());
+        AddTrace(ex);
+        throw ex;
+    }
+    catch(exception &e)
+    {
+        throw GenEx(Exception, -1, e.what());
     }
     out.flush();
     return out;

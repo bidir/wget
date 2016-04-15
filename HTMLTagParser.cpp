@@ -71,12 +71,12 @@ string HTMLTagParser::getTagToParse(int n)
 /* ====================  Methods       ==================== */
 void HTMLTagParser::parse()
 {
-    string file(""), line("");
+    string line("");
+    _content = "";
     while(tools::getline(*_in, line))
     {
-        file = file + line;
+        _content = _content + line;
     }
-    _content = file;
 
     removeComments();
 
@@ -100,7 +100,6 @@ void HTMLTagParser::searchTags()
             }
             catch(const ExHTMLTag &e)
             {
-                Log::e(e);
                 parse = false;
                 break;
             }
