@@ -41,7 +41,7 @@ int main(int argc, char *argv[])
     d_file.open("/tmp/wget.debug", ofstream::out |ofstream::app);
 
     Log::add(log_file);
-    //Log::setDebugOut(d_file);
+    Log::setDebugOut(d_file);
     try
     {
         bool only_page(false);

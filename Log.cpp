@@ -104,30 +104,37 @@ void Log::print(const string &label, const Exception &ex)
 {
     if(_log)
     {
-        ostringstream oss;
-        oss << "-" << this_thread::get_id() << "-"
-            << "[" << label
-            << "-" << ex.getCode() << "]"
-            << "[" << ex.getInfo().getFile() <<":"<< ex.getInfo().getLine() << "]"
-            << "["  << ex.getInfo().getFunction() << "]"
-            << "[" << tools::getCurrentTime() << "]" << endl;
+        try
+        {
+            ostringstream oss;
+            oss << "-" << this_thread::get_id() << "-"
+                << "[" << label
+                << "-" << ex.getCode() << "]"
+                << "[" << ex.getInfo().getFile() <<":"<< ex.getInfo().getLine() << "]"
+                << "["  << ex.getInfo().getFunction() << "]"
+                << "[" << tools::getCurrentTime() << "]" << endl;
 
-        for(unsigned int i = 0; i < ex.getTraces().size(); i++)
-        {
-            oss << " -> "
-            << ex.getTrace(i).getFile() <<":"<< ex.getTrace(i).getLine()
-            << "["  << ex.getTrace(i).getFunction() << "]" << endl;
+            for(unsigned int i = 0; i < ex.getTraces().size(); i++)
+            {
+                oss << " -> "
+                    << ex.getTrace(i).getFile() <<":"<< ex.getTrace(i).getLine()
+                    << "["  << ex.getTrace(i).getFunction() << "]" << endl;
+            }
+            oss << ex.getMessage();
+            if(label == _d && _d_out != NULL)
+            {
+                writeD(oss.str());
+            }
+            else
+            {
+                write(oss.str());
+            }
+
         }
-        oss << ex.getMessage();
-        if(label == _d && _d_out != NULL)
+        catch(exception &ex)
         {
-            writeD(oss.str());
+            return;
         }
-        else
-        {
-            write(oss.str());
-        }
-        //thread th(Log::write, oss.str());
     }
 }
 
@@ -135,20 +142,26 @@ void Log::print(const string &label, const string &msg)
 {
     if(_log)
     {
-        ostringstream oss;
-        oss << "[" << this_thread::get_id() << "]"
-            << "[" << label << "]"
-            << "[" << tools::getCurrentTime() << "]" << endl
-            << msg;
-        if(label == _d && _d_out != NULL)
+        try
         {
-            writeD(oss.str());
+            ostringstream oss;
+            oss << "[" << this_thread::get_id() << "]"
+                << "[" << label << "]"
+                << "[" << tools::getCurrentTime() << "]" << endl
+                << msg;
+            if(label == _d && _d_out != NULL)
+            {
+                writeD(oss.str());
+            }
+            else
+            {
+                write(oss.str());
+            }
         }
-        else
+        catch(exception &ex)
         {
-            write(oss.str());
+            return;
         }
-        //thread th(Log::write, oss.str());
     }
 }
 

@@ -262,13 +262,15 @@ void HttpDownloader::sPrintInfos(HttpDownloader *downloader)
     {
         cout.flush();
         cout << "\rT: " << downloader->getQueue().getDIndex() 
-             << "/" << downloader->getQueue().getURLs().size()
+             << "/" << downloader->getQueue().getDCount()
              << "   A: " << downloader->getQueue().getPIndex()
-             << "/" << downloader->getQueue().getFiles().size()
+             << "/" << downloader->getQueue().getPCount()
              << "   TH-T: " << downloader->getQueue().getNbRunningDThreads() 
              << "/" << downloader->getNbDownloadThreads()
              << "   TH-A: " << downloader->getQueue().getNbRunningPThreads()
-             << "/" << downloader->getNbParseThreads();
+             << "/" << downloader->getNbParseThreads()
+             << "   PT: " << downloader->getQueue().getLastDDepth()
+             << "   PA: " << downloader->getQueue().getLastPDepth();
              //<< "   P: " << downloader->getNbDownladedFiles();
         this_thread::sleep_for(milliseconds(downloader->getPrintRefresh()));
         cout.flush();
@@ -451,11 +453,9 @@ void HttpDownloader::parse()
     {
         return;
     }
-    LogD("debug");
 
     try
     {
-        LogD("debug");
         ifstream in;
         in.open(filename);
         if(in.fail())
@@ -463,19 +463,16 @@ void HttpDownloader::parse()
             LogW("Erreur pendant l'ouverture du fichier de sortie");
             return;
         }
-        LogD("debug");
         HTMLTagParser parser(in);
         for(unsigned int i = 0; i < _tags.size(); i++)
         {
             parser.addTagToParse(_tags[i]);
         }
-        LogD("debug");
         parser.parse();
         in.close();
 
         for(unsigned int i = 0; i < parser.getParsedTags().size(); i++)
         {
-            LogD("debug");
             HTMLTag tag = parser.getParsedTag(i);
             string s_url = "";
             string tagname = tag.getName();
@@ -485,7 +482,6 @@ void HttpDownloader::parse()
                 continue;
             }
 
-            LogD("debug");
             for(unsigned int j = 0; j < _tags.size(); j++)
 
             {
@@ -496,13 +492,11 @@ void HttpDownloader::parse()
                 }
             }
 
-            LogD("debug");
             if(s_url == "")
             {
                 continue;
             }
 
-            LogD("debug");
             try
             {
                 if(HttpClient::parseURL(s_url)[1] == _client.getTCPClient()->getAddress())
@@ -517,8 +511,7 @@ void HttpDownloader::parse()
             }
         }
         in.close();
-        LogD("debug");
-        replaceURI(filename);
+        //replaceURI(filename);
     }
     catch(Exception &e)
     {
@@ -584,7 +577,7 @@ void HttpDownloader::replaceServer(string &data, const string &tag, const string
     string reg_bef = "(<" + tag  + "\\s+.*" + label + "\\s*=\\s*\")";
     string reg_pro = "(\\w+://)?";
     string reg_url = "(" + _client.getTCPClient()->getAddress() + ")";
-    string reg_por = "(:[0-9]+)";
+    string reg_por = "(:[0-9]+)?";
     string reg_aft = "(/?[^\"]*\")";
 
     string reg = reg_bef +
@@ -593,18 +586,16 @@ void HttpDownloader::replaceServer(string &data, const string &tag, const string
                  reg_por +
                  reg_aft;
 
-    LogD(reg);
     regex e(reg, regex_constants::icase);
-    regex_replace(data, e, "$1$5");
+    data = regex_replace(data, e, "$1$5");
 }
 
 
 void HttpDownloader::replaceRoot(string &data, const string &tag, const string &label)
 {
     string e_reg = "(<" + tag + "\\s+.*" + label + "\\s*=\\s*\"/)";
-    LogD(e_reg);
     regex e(e_reg, regex_constants::icase);
-    regex_replace(data, e, "$1" + getPath());
+    data = regex_replace(data, e, "$1" + getPath());
 }
 
 void HttpDownloader::replaceURI(const string &filename)
@@ -625,6 +616,8 @@ void HttpDownloader::replaceURI(const string &filename)
     {
         data = data + line + "\n";
     }
+
+    i_file.close();
 
     for(unsigned int i = 0; i < _tags.size(); i++)
     {

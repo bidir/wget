@@ -56,13 +56,49 @@ class HttpDownloaderQueue
         bool _stop;
 
         /**
-         * @brief Permet d'indexer la file d'attente de téléchargement.
+         * @brief Le nombre d'urls prises dans la lsite.
+         *
+         * Cet attribut sert à connaitre la prochaine case de la liste des
+         * téléchargement à traiter. Il est donc incrémenter lorsque une url
+         * est prise dans la liste.
          */
         unsigned int _d_index;
         /**
-         * @brief Permet d'indexer la file d'attente d'analyse.
+         * @brief Le nombre de fichiers pris dans la liste.
+         *
+         * Cet attribut sert à connaitre la prochaine case de la liste des
+         * fichiers à traiter. Il est donc incrémenter lorsque un fichier est
+         * pris dans la liste.
+         * 
          */
         unsigned int _p_index;
+        /**
+         * @brief Le nombre total d'urls.
+         *
+         * Cet attribut sert à connaitre la dernière case de la liste des
+         * téléchargements. Il est donc incrémenter lorsque une url
+         * est ajoutée dans la liste. Il sert à éviter des push_back excessifs
+         * sur le vecteur _urls.
+         */
+        unsigned int _d_add_index;
+        /**
+         * @brief Le nombre total de fichiers.
+         *
+         * Cet attribut sert à connaitre la dernière case de la liste des
+         * fichiers. Il est donc incrémenter lorsque un fichier est
+         * ajouté dans la liste. Il sert à éviter des push_back excessifs sur
+         * le vecteur _files
+         * 
+         */
+        unsigned int _p_add_index;
+        /**
+         * @brief La dernière profondeur de téléchargement utilisée.
+         */
+        unsigned int _last_d_depth;
+        /**
+         * @brief La dernière profondeur d'analyse utilisée.
+         */
+        unsigned int _last_p_depth;
 
         /**
          * @brief Mutex d'ajout d'url.
@@ -136,7 +172,21 @@ class HttpDownloaderQueue
         /* ====================  Accessors     ==================== */
         unsigned int getDIndex();
         unsigned int getPIndex();
+        /**
+         * @brief Renvoie le nombre total d'urls dans la liste
+         *
+         * @return Le nombre total d'urls dans la liste.
+         */
+        unsigned int getDCount();
+        /**
+         * @brief Renvoie le nombre total de fichiers dans la liste.
+         *
+         * @return Le nombre total de fichiers dans la liste.
+         */
+        unsigned int getPCount();
         unsigned int getDepth();
+        unsigned int getLastDDepth();
+        unsigned int getLastPDepth();
         std::vector<std::string> &getURLs();
         std::vector<std::string> &getFiles();
 
