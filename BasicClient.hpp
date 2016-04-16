@@ -63,23 +63,75 @@ class SocketListener;
 // |....----------------------------------------------------------------....| \\
 // |....°°°°°°°OOOOO00000000000000000000000000000000000000000OOOO°°°°°°°....| \\
 // \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\|///////////////////////////////////// */ 
+/**
+ * @brief Classe de gestion d'un client TCP.
+ *
+ * Cette classe est abstraite. Elle contient les outils nécessaire à une
+ * connexion TCP. Pour s'en servir, il faut définir les méthodes
+ * readUntil() et readExactly().
+ */
 class BasicClient
 {
         /* ====================  Data members  ==================== */
     private:
+        /**
+         * @brief Si l'option gzip est activée.
+         */
         bool _is_gzip;
+        /**
+         * @brief Si l'on veut écrire directement dans un flux de sortie.
+         */
         bool _write_in_ostream;
-        bool _end_of_socket;    //Vrai si la socket est entièrement lue.
+        bool _end_of_socket;
 
-        size_t _size_to_read;   //Nombre de bytes à lire.
-        size_t _read_size;      //Nombre de bytes lus.
+        /**
+         * @brief La taille des dernières données lues dans la socket.
+         */
+        size_t _size_to_read; 
+        /**
+         * @brief La taille des données à lire.
+         */
+        size_t _read_size;
 
-        std::string _addr;           //Adresse ip ou url du serveur.
-        std::string _port;           //Le port ou le service à utiliser.
-        std::string _protocole;      //Le port ou le service à utiliser.
+        /**
+         * @brief L'adresse IP ou l'url du serveur à joindre
+         */
+        std::string _addr;
+        /**
+         * @brief Le port de l'application à joindre.
+         *
+         * Si le port n'est pas définit, alors le protocole sera utilisé à sa
+         * place.
+         */
+        std::string _port;
+        /**
+         * @brief Le protocole à joindre.
+         *
+         * Le protocole n'est utilisé que si le port n'est pas défini.
+         */
+        std::string _protocole;
 
-        Boost::Streambuf _message;     //Buffer pour la lecture de la socket.
-        SocketListener *_socket_listener; //Serira au traitement asynchrone.
+        /**
+         * @brief Le buffer qui sert à lire les données dans la socket.
+         *
+         * Lorsque l'on appelle la méthode readUntil() ou readSome(), les
+         * données lues sont enregistrées dans ce buffer.
+         */
+        Boost::Streambuf _message;
+        /**
+         * @brief Un listener du traitement d'une connexion.
+         *
+         * Ce n'est pas encore implémenter, mais l'idée était de pouvoir
+         * offrir un moyen à l'utilisateur de suivre l'évolution de l'échange
+         * entre le client et le serveur.
+         */
+        SocketListener *_socket_listener;
+        /**
+         * @brief Le flux de sortie dans lequel écrire les données. 
+         *
+         * Si l'on veut directement écrire dans un fichier, il faut définir
+         * cet attribut et mettre _write_in_ostream à vrai.
+         */
         std::ostream *_out;
 
 
@@ -120,20 +172,70 @@ class BasicClient
 
         /* ====================  Operators     ==================== */
     public:
+        /**
+         * @brief Surcharge de l'opérateur <<.
+         *
+         * Cette opérateur fait appel à readSome() puis écrit dans le flux de
+         * sortie. Ça permet d'écrire directement dans un fichier sans
+         * convertir en chaine de caractères.
+         *
+         * @param out Le flux de sortie.
+         * @param client Le client TCP.
+         *
+         * @return Renvoie out après modification.
+         */
         friend std::ostream &operator<<(std::ostream &out, BasicClient &client);
 
 
         /* ====================  Methods       ==================== */
+        /**
+         * @brief Écrire dans la socket.
+         *
+         * @param msg Le message à écrire.
+         * @param size La taille du message.
+         */
         virtual void write(const char *msg, size_t size) = 0;
+        /**
+         * @brief Lancer la connexion.
+         */
         virtual void connect() = 0;
-        virtual void close() = 0;   //Fermer la connexion et la requête
+        /**
+         * @brief Fermer la connexion.
+         */
+        virtual void close() = 0;
 
-        void writeInOstream(bool read, std::ostream &out);
-        void write(const std::string &msg);//Permet d'écrire dans la socket
+        /**
+         * @brief Permet de définir le flux de sortie _out.
+         *
+         * @param write Si vrai, l'on va écrire dans le flux de sortie out.
+         * @param out Le flux de sortie dans lequel l'on veut écrire.
+         */
+        void writeInOstream(bool write, std::ostream &out);
+        /**
+         * @brief Permet d'écrire dans la socket.
+         *
+         * @param msg
+         */
+        void write(const std::string &msg);
+        /**
+         * @brief Ecrire directement dans le fichier filename
+         *
+         * @param filename Le nom du fichier.
+         */
         void saveInFile(const std::string &filename);//TODO.
-        void readSome();    //lire _size_to_read bytes dans la socket.
+        /**
+         * @brief Lire une taille fixe dans la socket.
+         *
+         * Cette fonction lit _size_to_read bytes. Il faut donc définir la taille
+         * à lire grace setSizeToRead(size_t size).
+         */
+        void readSome();
+        /**
+         * @brief Lire jusqu'à un fanion.
+         *
+         * @param fanion Le fanion.
+         */
         void readUntil(const std::string &fanion);//Lire en incluant le fanion.
-        size_t find(const std::string &fanion);
 
     protected:
         virtual size_t readExactly(Boost::Streambuf &buf, size_t size, Boost::Error &error) = 0;

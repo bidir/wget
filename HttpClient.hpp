@@ -39,6 +39,9 @@
 // |....----------------------------------------------------------------....| \\
 // |....°°°°°°°OOOOOOOOO00000000000000000000000000000000OOOOOOOOO°°°°°°°....| \\
 // \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\|///////////////////////////////////// */
+/**
+ * @brief Classe qui définit un client HTTP.
+ */
 class HttpClient
 {
         /* ====================  Data members  ==================== */
@@ -51,27 +54,66 @@ class HttpClient
         static std::string reg_quer;
         static std::string reg_queries;
     private:
+        /**
+         * @brief Si les données lues sont chunckées.
+         */
         bool _chunked;
 
+        /**
+         * @brief Le code de HTTP renvoyé par le serveur.
+         */
         unsigned int _status;
+        /**
+         * @brief La taille des données envoyées par le serveru.
+         */
         int _content_length;
 
+        /**
+         * @brief L'en-tête HTTP.
+         */
         std::string _header;
+        /**
+         * @brief Les données renvoyées par le serveur.
+         */
         std::string _data;
+        /**
+         * @brief Le chemin dans l'url.
+         */
         std::string _path;
+        /**
+         * @brief Le nom du fichier à demander.
+         */
         std::string _filename;
+        /**
+         * @brief Le type des données.
+         */
         std::string _content_type;
+        /**
+         * @brief Le message d'état HTTP.
+         */
         std::string _status_msg;
+        /**
+         * @brief La version HTTP utilisée par le serveur.
+         */
         std::string _http_version;
         std::string _connection;
         std::string _accept_ranges;
         std::string _unparsed_header;
+        /**
+         * @brief Correspond au champ location dans l'en-tête HTTP.
+         */
         std::string _location;
         std::string _encoding;
         std::string _content_encoding;
 
+        /**
+         * @brief Le client TCP.
+         */
         BasicClient* _client;
 
+        /**
+         * @brief Les attributs ajoutés à l'url.
+         */
         std::map<std::string, std::string> _queries;
 
 
@@ -117,19 +159,77 @@ class HttpClient
 
 
         /* ====================  Methods       ==================== */
+        /**
+         * @brief Renvoie le client TCP.
+         *
+         * @return Le client TCP _client.
+         */
         BasicClient *getTCPClient();
+        /**
+         * @brief Lancer la connexion TCP.
+         */
         void connect();
+        /**
+         * @brief Fermer la connexion TCP.
+         */
         void close();
-        void get(); //Envoyer une requête GET.
-        void get(const std::string &file); //Envoyer une requête GET.
+        /**
+         * @brief Envoyer une requête HTTP GET.
+         */
+        void get();
+        void get(const std::string &file);
         /* Cette fonction permet de décomposer une URL en "nom serveur" et
          * "chemin" vers le fichier à récupérer.*/
+        /**
+         * @brief Permet d'analyser une URL et de renvoyer le nom du serveur.
+         *
+         * Cette fonction fait appel à parseURL().
+         *
+         * @param url L'url à analyser.
+         *
+         * @return Le nom du serveur.
+         */
         static std::string getServerFromURL(std::string url);
+        /**
+         * @brief Permet d'analyser une URL.
+         *
+         * Cette fonction renvoie un tableau avec dans l'ordre: le protocole,
+         * le nom du serveur, le port, le chimin, le fichier et les paramètres.
+         *
+         * @param url L'url à analyser.
+         * @param strict Si l'on doit exiger un protocole ou l'ajouter s'il y
+         * en a pas.
+         *
+         * @return Un tableau contenant la décomposition de l'url.
+         */
         static std::vector<std::string> parseURL(std::string url, bool strict = false);
+        /**
+         * @brief Permet de définir l'url à contacter.
+         *
+         * @param url L'url à contacter.
+         * @param strict Si l'on doit exiger un protocole ou l'ajouter si'l y
+         * en a pas.
+         */
         void url(std::string url, bool strict = false);
+        /**
+         * @brief Lancer l'analyser de la réponse.
+         *
+         * Cette fonction appelle simplement ::parseHeader() et
+         * ::recuperateData().
+         */
         virtual void parse();   //Permet de parser la réponse.
+        /**
+         * @brief Lancer l'analyse de l'en-tête HTTP.
+         */
         void parseHeader(); //Permet de parser l'en-tête de la réponse.
+        /**
+         * @brief Lancer la récupération des données.
+         */
         void recuperateData(); //Permet de parser l'en-tête de la réponse.
+        /**
+         * @brief Imprimer les information sur la réponse dans les fichiers de
+         * log.
+         */
         void printInfos();
 
 

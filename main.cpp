@@ -132,7 +132,11 @@ int main(int argc, char *argv[])
                 }
                 else if(path == "")
                 {
-                    path = argv[i];
+                    path = tools::absolutePath(argv[i]);
+                    if(path[path.size() -1] != '/')
+                    {
+                        path = path + "/";
+                    }
                 }
                 else
                 {
@@ -152,14 +156,15 @@ int main(int argc, char *argv[])
             cerr << "ERREUR: il faut preciser un repertoire." << endl;
             return EXIT_FAILURE;
         }
+
         if(!tools::isDirExists(path) && !only_page)
         {
-            cerr << "ERREUR: Le repertoire \"" <<  argv[argc - 1] << "\" n'existe pas" << endl;
+            cerr << "ERREUR: Le repertoire \"" <<  path << "\" n'existe pas" << endl;
             end();
             return EXIT_FAILURE;
         }
 
-        Log::init();
+        //Log::init();
         LogI("DEBUT");
         HttpDownloader downloader;
 

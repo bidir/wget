@@ -50,6 +50,8 @@ namespace tools
     void createDir(const std::string &path);
     bool isDirExists(const std::string &path);
     bool isDirExists(const std::string &path);
+    std::string absolutePath(const std::string &path);
+    std::string absolutePath(const char *path);
     std::vector<char> ungzip(const char *compr, unsigned int size);
 }
 

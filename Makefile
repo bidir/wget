@@ -1,11 +1,11 @@
 BIN=wget
 
-CXXFLAGS=-std=c++11 -O0 -g -W -Wall -fdiagnostics-color
+CXXFLAGS=-std=c++11 -W -Wall -fdiagnostics-color
 LDFLAGS=
 
 LIBS=-lboost_system -lpthread -lboost_filesystem -lssl -lcrypto -lz -lboost_iostreams
 COMP=g++
-CXX=$(COMP) $(CXXFLAGS)
+CXX=$(COMP)
 LD=$(COMP)
 
 SRCS=$(wildcard *.cpp)
@@ -19,10 +19,10 @@ $(BIN): $(OBJS)
 	$(LD) $(LDFLAGS) -o $@ $+ $(LIBS)
 
 %.o: %.cpp
-	$(CXX) -o $@ -c $<
+	$(CXX) $(CXXFLAGS) -o $@ -c $<
 
 %.d: %.cpp
-	$(CXX) -MM -MD -o $@ $<
+	$(CXX) $(CXXFLAGS) -MM -MD -o $@ $<
 
 .PHONY: clean
 

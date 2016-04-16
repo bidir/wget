@@ -264,16 +264,16 @@ class HttpDownloader
          *
          * @param data Les text dans lequel effectuer ces remplacements.
          */
-        void replaceServer(std::string &data, const std::string &tag, const std::string &label);
+        std::string replaceServer(std::string &data, const std::string &tag, const std::string &label);
         /**
          * @brief Replacer les uri commençant par la racine avec le chemin
          * local.
          *
-         * @param data Les text dans lequel effectuer ces remplacements.
+         * @param data Le texte dans lequel effectuer ces remplacements.
          * @param tag La balise à traiter.
          * @param label L'attribut.
          */
-        void replaceRoot(std::string &data, const std::string &tag, const std::string &label);
+        std::string replaceRoot(std::string &data, const std::string &tag, const std::string &label);
         void replaceURI(const std::string &filename);
 };
 /* -----************************  end of class  ************************----- \\

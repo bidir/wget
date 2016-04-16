@@ -35,3 +35,7 @@ wget
 # Temporary
 *~
 
+# Doxygen
+doc/latex/*
+doc/html/*
+

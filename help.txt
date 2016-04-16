@@ -13,8 +13,8 @@ DESCRIPTION:
 programme mutithread qui permet d'effectuer des téléchargements grâce au protocole HTTP.
 Le programme télécharge le fichier préciser dans <url>, l'analyse et télécharge
 tous les fichiers du même serveur jusqu'à une certaine profondeur.
-Si l'option -s est préciser, alors il faut préciser le nom du fichier dans
-lequel enregistrer la page téléchargée.
+Si l'option -s est préciser, seul le du premier fichier est téléchargé est
+réaliser, sans l'analyser ni modifier ses liens.
 
 OPTIONS:
   -h  --help

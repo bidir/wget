@@ -17,6 +17,7 @@
  */
 
 
+#include <iomanip>
 #include <chrono>
 #include <fstream>
 #include <regex>
@@ -195,8 +196,8 @@ void HttpDownloader::download(string url)
 
     if(_only_page)
     {
-        _nb_d_th = 1;
-        _nb_p_th = 0;
+        _nb_d_th = 3;
+        _nb_p_th = 1;
     }
 
     try
@@ -255,27 +256,45 @@ void HttpDownloader::wait()
     }
 }
 
-void HttpDownloader::sPrintInfos(HttpDownloader *downloader)
+void HttpDownloader::sPrintInfos(HttpDownloader *d)
 {
-    downloader->lockPrint();
+    d->lockPrint();
     do
     {
+        cout << "\r"
+             << "T:"
+                    << setw(4) << setfill('0') << right
+                    << d->getQueue().getDIndex() 
+                 << "/" << setw(4) << setfill('0') << right
+                    << d->getQueue().getDCount()
+             << "  A:"
+                    << setw(4) << setfill('0') << right
+                    << d->getQueue().getPIndex()
+                 << "/"
+                    << setw(4) << setfill('0') << right
+                    << d->getQueue().getPCount()
+             << "  TH-T:"
+                    << setw(2) << setfill('0') << right
+                    << d->getQueue().getNbRunningDThreads() 
+                 << "/"
+                    << setw(2) << setfill('0') << right
+                    << d->getNbDownloadThreads()
+             << "  TH-A:"
+                    << setw(2) << setfill('0') << right
+                    << d->getQueue().getNbRunningPThreads()
+                  << "/"
+                    << setw(2) << setfill('0') << right
+                    << d->getNbParseThreads()
+             << "  PT:"
+                    << setw(3) << setfill('0') << right
+                    << d->getQueue().getLastDDepth()
+             << "  PA:"
+                    << setw(3) << setfill('0') << right
+                    << d->getQueue().getLastPDepth();
+        this_thread::sleep_for(milliseconds(d->getPrintRefresh()));
         cout.flush();
-        cout << "\rT: " << downloader->getQueue().getDIndex() 
-             << "/" << downloader->getQueue().getDCount()
-             << "   A: " << downloader->getQueue().getPIndex()
-             << "/" << downloader->getQueue().getPCount()
-             << "   TH-T: " << downloader->getQueue().getNbRunningDThreads() 
-             << "/" << downloader->getNbDownloadThreads()
-             << "   TH-A: " << downloader->getQueue().getNbRunningPThreads()
-             << "/" << downloader->getNbParseThreads()
-             << "   PT: " << downloader->getQueue().getLastDDepth()
-             << "   PA: " << downloader->getQueue().getLastPDepth();
-             //<< "   P: " << downloader->getNbDownladedFiles();
-        this_thread::sleep_for(milliseconds(downloader->getPrintRefresh()));
-        cout.flush();
-    }while(downloader->getPrint() && !downloader->getQueue().isStopped());
-    downloader->unlockPrint();
+    }while(d->getPrint() && !d->getQueue().isStopped());
+    d->unlockPrint();
 }
 
 void HttpDownloader::sGet(HttpDownloader *httpDownloader)
@@ -363,25 +382,27 @@ void HttpDownloader::get()
         }
         else
         {
-            string path("");
+            string path = getPath();
             string filename = getPath();
 
             if(!_only_page)
             {
-                path = getPath() + client.getPath();
-                tools::createDir(path);
-                if(client.getFilename() == "")
-                {
-                    filename = path + "index.html";
-                }
-                else
-                {
-                    filename = path + client.getFilename();
-                }
+                path = path + client.getPath();
+            }
+            tools::createDir(path);
+            if(client.getFilename() == "")
+            {
+                filename = path + "index.html";
+            }
+            else
+            {
+                filename = path + client.getFilename();
             }
 
+            regex("//", regex_constants::icase);
+            filename = regex_replace(filename, regex("//"), "/");
             ofstream file;
-            file.open(filename);
+            file.open(filename, ostream::trunc);
             if(file.fail())
             {
                 Log::w(GenEx(
@@ -406,7 +427,6 @@ void HttpDownloader::get()
                 string data = ss.str();
                 file << data;
                 file.flush();
-                file.close();
                 if(depth <= _depth && !_only_page)
                 {
                     _queue.addFile(filename, depth);
@@ -415,6 +435,7 @@ void HttpDownloader::get()
 
             LogI("Fermeture de la connexion au serveur " + _client.getTCPClient()->getAddress());
             client.close(); 
+            file.close();
         }
     }
     catch(Exception &e)
@@ -510,8 +531,6 @@ void HttpDownloader::parse()
                 Log::w(e);
             }
         }
-        in.close();
-        //replaceURI(filename);
     }
     catch(Exception &e)
     {
@@ -524,6 +543,7 @@ void HttpDownloader::parse()
         Log::w(ex.what());
         return;
     }
+    replaceURI(filename);
 }
 
 void HttpDownloader::lockPrint()
@@ -572,30 +592,37 @@ string HttpDownloader::createURL(const string &path)
     return url;
 }
 
-void HttpDownloader::replaceServer(string &data, const string &tag, const string &label)
+string HttpDownloader::replaceServer(string &data, const string &tag, const string &label)
 {
-    string reg_bef = "(<" + tag  + "\\s+.*" + label + "\\s*=\\s*\")";
-    string reg_pro = "(\\w+://)?";
-    string reg_url = "(" + _client.getTCPClient()->getAddress() + ")";
-    string reg_por = "(:[0-9]+)?";
+    string reg_bef = "<" + tag  + "\\s+.*" + label + "\\s*=\\s*\"";
+    string reg_pro = _client.getProtocole();
+    string reg_url = _client.getTCPClient()->getAddress();
+    string reg_por = _client.getTCPClient()->getPort();
     string reg_aft = "(/?[^\"]*\")";
 
-    string reg = reg_bef +
+    string reg = "(" + reg_bef + ")" +
                  reg_pro +
                  reg_url +
                  reg_por +
-                 reg_aft;
+                 "(" + reg_aft + ")";
 
     regex e(reg, regex_constants::icase);
-    data = regex_replace(data, e, "$1$5");
+    data = regex_replace(data, e, "$1$2");
+    return data;
 }
 
-
-void HttpDownloader::replaceRoot(string &data, const string &tag, const string &label)
+string HttpDownloader::replaceRoot(string &data, const string &tag, const string &label)
 {
-    string e_reg = "(<" + tag + "\\s+.*" + label + "\\s*=\\s*\"/)";
+    string e_reg = "(<" + tag + "\\s.*" + label + "\\s*=\\s*\")/";
     regex e(e_reg, regex_constants::icase);
     data = regex_replace(data, e, "$1" + getPath());
+
+    string e_reg2 = "(<" + tag + "\\s.*" + label + "\\s*=\\s*\".*)/\"";
+    regex e2(e_reg2, regex_constants::icase);
+    string x = "/index.html\"";
+    data = regex_replace(data, e2, "$1" + x);
+
+    return data;
 }
 
 void HttpDownloader::replaceURI(const string &filename)
@@ -621,16 +648,16 @@ void HttpDownloader::replaceURI(const string &filename)
 
     for(unsigned int i = 0; i < _tags.size(); i++)
     {
-        replaceServer(data, _tags[i], _tag_to_attr[_tags[i]]);
+        data = replaceServer(data, _tags[i], _tag_to_attr[_tags[i]]);
     }
 
     for(unsigned int i = 0; i < _tags.size(); i++)
     {
-        replaceRoot(data, _tags[i], _tag_to_attr[_tags[i]]);
+        data = replaceRoot(data, _tags[i], _tag_to_attr[_tags[i]]);
     }
 
     ofstream o_file;
-    o_file.open(filename);
+    o_file.open(filename, std::ofstream::out | std::ofstream::trunc);
     if(o_file.fail())
     {
         Log::w(GenEx(
@@ -639,5 +666,8 @@ void HttpDownloader::replaceURI(const string &filename)
                     ));
         return;
     }
-    o_file << data;
+
+    //o_file << data;
+    o_file.write(data.c_str(), data.size());
+    o_file.close();
 }

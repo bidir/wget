@@ -111,7 +111,7 @@ void HttpDownloaderQueue::addURL(const string &url, unsigned int depth)
     //Si l'url n'est pas déjà ajoutée et n'est pas vide.
     if(url != "" && !hasURL(url))
     {
-        LogD("Ajout de l'url \"" + url + "\"");
+        //LogD("Ajout de l'url \"" + url + "\"");
         if(_urls.size() == _d_add_index)
         {
             _urls.resize(_urls.size()*2);
@@ -179,7 +179,7 @@ string HttpDownloaderQueue::getURL()
         }
         //Incrémenter l'indice de téléchargement.
         _d_index++;
-        LogD("Sortie de l'url " + url);
+        //LogD("Sortie de l'url " + url);
     }
     else
     {
@@ -214,6 +214,7 @@ string HttpDownloaderQueue::getFile()
             _last_p_depth = _p_depths[_p_index];
         }
         _p_index++;
+        LogD("Sortie du fichier " + file);
     }
     return file;
 }

@@ -193,7 +193,7 @@ namespace tools
             if(ec)
             {
                 SystemError es(ec);
-                throw GenEx(ExCreatingDir, es.what());
+                throw GenEx(ExFilesystem, es.what());
             }
         }
     }
@@ -211,6 +211,31 @@ namespace tools
     bool isDirExists(const string &path)
     {
         return isDirExists(path.c_str());
+    }
+
+    string absolutePath(const std::string &path)
+    {
+        try
+        {
+            return absolute(Path(path)).string();
+        }
+        catch(exception &e)
+        {
+            throw GenEx(ExFilesystem, e.what());
+        }
+    }
+
+    string absolutePath(const char *path)
+    {
+        try
+        {
+            return absolutePath(string(path));
+        }
+        catch(Exception &e)
+        {
+            AddTrace(e);
+            throw e;
+        }
     }
 
     vector<char> ungzip(const char *compr, unsigned int size)
@@ -232,7 +257,7 @@ namespace tools
         }
         catch(exception &ex)
         {
-            throw GenEx(Exception, -1, "Incapable de decompresse le contenu.");
+            throw GenEx(ExFilesystem, "Incapable de decompresse le contenu.");
         }
         return decompressed;
     }

@@ -10,7 +10,7 @@
  *      |-> ExceptionInfo
  *      |-> Exception
  *      |-> ExOpeningFile
- *      |-> ExCreatingDir
+ *      |-> ExFilesystem
  *      |-> ExNullPointer
  *  ->Les constantes:
  *      |-> Les codes d'erreurs.
@@ -44,7 +44,7 @@ typedef enum
     /* 007 */     OUTPUT_FILE,
     /* 008 */     HTTP_PARSER,
     /* 009 */     OPEN_FILE,
-    /* 010 */     CREATE_DIR,
+    /* 010 */     FILE_SYSTEM,
     /* 011 */     INVALID_PROTOCOLE,
     /* 012 */     NULL_POINTER
 
@@ -218,32 +218,32 @@ class ExOpeningFile : public Exception
 /* ////////////////////////////////////|\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\ \\
 // |....oooooooOOOO00000********°°°°°^^^^^°°°°°********000000OOOOooooooo....| \\
 // |....---------------|             class             |----------------....| \\
-    Class: ExCreatingDir
+    Class: ExFilesystem
     Description:
 // |....----------------------------------------------------------------....| \\
 // \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\|///////////////////////////////////// */
-class ExCreatingDir : public Exception
+class ExFilesystem : public Exception
 {
     public:
         /* ====================  Constructors  ==================== */
-        ExCreatingDir
+        ExFilesystem
             (
                 const std::string &msg,
                 const std::string &file,
                 const std::string &function,
                 int line
-            ) throw():Exception(ERR::CREATE_DIR, msg, file, function, line)
+            ) throw():Exception(ERR::FILE_SYSTEM, msg, file, function, line)
         {};
 
-        ExCreatingDir
+        ExFilesystem
             (
                 const std::string &msg,
                 const ExceptionInfo &info
-            ) throw():Exception(ERR::CREATE_DIR, msg, info)
+            ) throw():Exception(ERR::FILE_SYSTEM, msg, info)
         {};
 };
 /* -----************************  end of class  ************************----- \\
-       ExCreatingDir
+       ExFilesystem
 // -----****************************************************************----- */
 
 
@@ -265,14 +265,14 @@ class ExNullPointer : public Exception
                 const std::string &file,
                 const std::string &function,
                 int line
-            ) throw():Exception(ERR::CREATE_DIR, msg, file, function, line)
+            ) throw():Exception(ERR::NULL_POINTER, msg, file, function, line)
         {};
 
         ExNullPointer
             (
                 const std::string &msg,
                 const ExceptionInfo &info
-            ) throw():Exception(ERR::CREATE_DIR, msg, info)
+            ) throw():Exception(ERR::NULL_POINTER, msg, info)
         {};
 };
 /* -----************************  end of class  ************************----- \\
