@@ -27,7 +27,7 @@ $(BIN): $(OBJS)
 .PHONY: clean
 
 clean:
-	$(RM) *~ $(OBJS) $(DEPS) $(BIN) *.html
+	$(RM) -r *~ $(OBJS) $(DEPS) $(BIN) doc/html/* doc/latex/*
 
 .PHONY: cleanall
 
