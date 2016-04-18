@@ -5,7 +5,7 @@
  * ================================ Header =====================================
  * Filename: Client.hpp
  *
- * Description: Sont définis dans ce fichier:
+ * Description: Sont dÃ©finis dans ce fichier:
  *  ->Les classes:
  *      |-> Client
  *      |-> SocketListener
@@ -15,7 +15,7 @@
  * Revision: none
  *
  * Commants: 
- *      |-> mercredi 24 février 2016, 19:29:34 (UTC+0100)
+ *      |-> mercredi 24 fÃ©vrier 2016, 19:29:34 (UTC+0100)
  *        |-> Ajouter les traitements asynchrones de la socket.
  *
  * Compiler: gcc
@@ -30,25 +30,28 @@
 
 /* ////////////////////////////////////|\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\ \\
 // |....oooooooOOOO000000000000000000000000000000000000000000OOOOooooooo....| \\
-// |....oooooooOOOO00000********°°°°°^^^^^°°°°°********000000OOOOooooooo....| \\
+// |....oooooooOOOO00000********Â°Â°Â°Â°Â°^^^^^Â°Â°Â°Â°Â°********000000OOOOooooooo....| \\
 // |....---------------|             class             |----------------....| \\
-// |....°°°°°°°°°°°°°°°                                 °°°°°°°°°°°°°°°°....| \\
+// |....Â°Â°Â°Â°Â°Â°Â°Â°Â°Â°Â°Â°Â°Â°Â°                                 Â°Â°Â°Â°Â°Â°Â°Â°Â°Â°Â°Â°Â°Â°Â°Â°....| \\
     Class: Client
-    Description: Permet de définir un client tcp pour une connexion non cryptée.
+    Description: Permet de dÃ©finir un client tcp pour une connexion non cryptÃ©e.
 // |....----------------------------------------------------------------....| \\
-// |....°°°°°°°OOOOO00000000000000000000000000000000000000000OOOO°°°°°°°....| \\
+// |....Â°Â°Â°Â°Â°Â°Â°OOOOO00000000000000000000000000000000000000000OOOOÂ°Â°Â°Â°Â°Â°Â°....| \\
 // \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\|///////////////////////////////////// */ 
 
 /**
- * @brief Définition d'un client TCP.
+ * @brief DÃ©finition d'un client TCP.
  *
- * Cette classe implémente la classe BasicClient.
+ * Cette classe implÃ©mente la classe BasicClient.
  */
 class Client : public BasicClient
 {
         /* ====================  Data members  ==================== */
     private:
-        Boost::Socket *_socket;        //La socket qui servira pour les échanges.
+        /**
+         * @brief La socket.
+         */
+        Boost::Socket *_socket;
         Boost::IoService _service;
 
 
@@ -72,7 +75,7 @@ class Client : public BasicClient
         /* ====================  Methods       ==================== */
         virtual void write(const char *msg, size_t size);
         virtual void connect();
-        virtual void close();   //Fermer la connexion et la requête
+        virtual void close();   //Fermer la connexion et la requÃªte
 
     protected:
         virtual size_t readExactly(Boost::Streambuf &buf, size_t size, Boost::Error &error);
